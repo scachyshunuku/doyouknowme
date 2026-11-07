@@ -40,27 +40,24 @@ const VIEW_LABELS: [View, string][] = [
 export default function Playground() {
   const [view, setView] = useState<View>("host");
   const [frame, setFrame] = useState<"tv" | "phone">("tv");
-  const [subjectName, setSubjectName] = useState("Alex");
+  const [names, setNames] = useState<Record<string, string>>({ host: "Sam", p2: "Alex", g1: "Guest1", g2: "Guest2" });
   const [subjectId, setSubjectId] = useState("p2");
+  // The subject-name input edits the current subject's name only.
+  const subjectName = names[subjectId] ?? "Alex";
   const [copied, setCopied] = useState(false);
   const [qIndex, setQIndex] = useState(0);
   const [guestPicked, setGuestPicked] = useState<number | null>(null);
 
   const players: Player[] = useMemo(
-    () => [
-      { id: "host", name: "Sam" },
-      { id: "p2", name: "Alex" },
-      { id: "g1", name: "Guest1" },
-      { id: "g2", name: "Guest2" },
-    ].map((b) => ({
-      id: b.id,
-      game_id: "mock",
-      // The subject-name input renames whoever is currently the subject.
-      name: b.id === subjectId ? subjectName || "Alex" : b.name,
-      role: b.id === "host" ? "host" : b.id === subjectId ? "subject" : "guest",
-      joined_at: "",
-    })),
-    [subjectName, subjectId],
+    () =>
+      ["host", "p2", "g1", "g2"].map((id) => ({
+        id,
+        game_id: "mock",
+        name: names[id] ?? id,
+        role: id === "host" ? "host" : id === subjectId ? "subject" : "guest",
+        joined_at: "",
+      })),
+    [names, subjectId],
   );
 
   const question = QUESTIONS[qIndex];
@@ -101,7 +98,7 @@ export default function Playground() {
 
       <div className="card">
         <label>Subject name</label>
-        <input value={subjectName} onChange={(e) => setSubjectName(e.target.value)} placeholder="e.g. Alex" />
+        <input value={subjectName} onChange={(e) => setNames((n) => ({ ...n, [subjectId]: e.target.value }))} placeholder="e.g. Alex" />
         <label>Question</label>
         <select value={qIndex} onChange={(e) => { setQIndex(Number(e.target.value)); setGuestPicked(null); }}>
           {QUESTIONS.map((q, i) => (
