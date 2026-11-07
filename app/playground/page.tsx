@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { computeRoundResult, computeTotals } from "../../lib/scoring";
 import { renderQuestionText } from "../../lib/template";
+import { matchesLabel, pointsLabel } from "../../lib/format";
 import type { Answer, Player, Question } from "../../lib/types";
 
 // Design playground: preview every view with mock data, no Supabase, no real
@@ -113,7 +114,6 @@ export default function Playground() {
 
       <div>
         <div className="progress"><div style={{ width: `${Math.round(((view === "final" ? QUESTIONS.length : qIndex + (view === "results" ? 1 : 0)) / QUESTIONS.length) * 100)}%` }} /></div>
-        <p className="progress-label">Question {qIndex + 1} of {QUESTIONS.length}</p>
       </div>
 
       {view === "lobby" && (
@@ -140,7 +140,7 @@ export default function Playground() {
             <div className="card">
               <h2>Question {qIndex + 1} of {QUESTIONS.length}</h2>
               <p className="question-text">{questionText}</p>
-              <p>The host does nothing here. You cannot see anyone&apos;s answer until Results. You can override to Results at any time.</p>
+              <p>Shown for the room — these are not buttons and you cannot pick one. You cannot see anyone&apos;s answer until Results.</p>
               <div className="host-options">
                 {question.options.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
@@ -155,7 +155,7 @@ export default function Playground() {
             {leaderboard.map((p, i) => (
               <div className="row" key={p.id}>
                 <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.role === "subject" ? " ★" : ""}</span>
-                <span>{totals.totalPoints[p.id] ?? 0} pts · {totals.subjectMatches[p.id] ?? 0} matches</span>
+                <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
               </div>
             ))}
           </aside>
@@ -196,7 +196,7 @@ export default function Playground() {
                 const isSubjectPick = round.subjectOption === i;
                 return (
                   <div key={i} className={isSubjectPick ? "result-option subject-pick" : "result-option"}>
-                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectName || "Alex"}'s pick` : ""}{round.majorityOptions.includes(i) ? " — majority" : ""}</span><span>{total} ({pct}%)</span></div>
+                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectName || "Alex"}'s pick` : ""}{round.majorityOptions.includes(i) ? (round.majorityOptions.length > 1 ? " — tied for majority" : " — majority") : ""}</span><span>{total} ({pct}%)</span></div>
                     <div className="bar"><div style={{ width: `${pct}%` }} /></div>
                   </div>
                 );
@@ -205,7 +205,7 @@ export default function Playground() {
               {guests.map((p) => (
                 <div className="row" key={p.id}>
                   <span>{p.name}</span>
-                  <span>+{round.pointsThisRound[p.id] ?? 0} pts {round.matchedSubject[p.id] ? "(matched subject +2)" : ""} {round.matchedMajority[p.id] ? "(majority +1)" : ""}</span>
+                  <span>+{pointsLabel(round.pointsThisRound[p.id] ?? 0)} {round.matchedSubject[p.id] ? "(matched subject +2)" : ""} {round.matchedMajority[p.id] ? "(majority +1)" : ""}</span>
                 </div>
               ))}
               <p>Subject scores 0 points. Host scores 0 points.</p>
@@ -217,7 +217,7 @@ export default function Playground() {
             {leaderboard.map((p, i) => (
               <div className="row" key={p.id}>
                 <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.role === "subject" ? " ★" : ""}</span>
-                <span>{totals.totalPoints[p.id] ?? 0} pts · {totals.subjectMatches[p.id] ?? 0} matches</span>
+                <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
               </div>
             ))}
           </aside>
@@ -228,7 +228,7 @@ export default function Playground() {
         <div className="card">
           <h2>Final leaderboard</h2>
           {leaderboard.map((p, i) => (
-            <div className="row" key={p.id}><span>{i + 1}. {p.name}<span className="tag">{p.role}</span></span><span>{totals.totalPoints[p.id] ?? 0} pts · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
+            <div className="row" key={p.id}><span>{i + 1}. {p.name}<span className="tag">{p.role}</span></span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
           ))}
           <h2>Most matches with the subject</h2>
           <p><strong>{mostMatches.map((p) => p.name).join(", ")}</strong> matched the subject {maxMatches} time(s) — the most of any guest.</p>

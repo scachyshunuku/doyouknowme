@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { getSupabase } from "../../../lib/supabase";
 import { computeRoundResult, computeTotals } from "../../../lib/scoring";
 import { renderQuestionText } from "../../../lib/template";
+import { matchesLabel, pointsLabel } from "../../../lib/format";
 import { sessionKey } from "../../../lib/types";
 import type { Answer, Game, Player, Question, QuestionPackage } from "../../../lib/types";
 
@@ -21,6 +22,9 @@ export default function GamePage() {
   const [busyStart, setBusyStart] = useState(false);
   const [busySubjectId, setBusySubjectId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Optimistic pick: show the waiting screen the moment an option is tapped,
+  // instead of waiting ~1s for the insert round-trip.
+  const [pendingPick, setPendingPick] = useState<number | null>(null);
   const autoAdvancedRef = useRef("");
 
   const load = useCallback(async () => {
@@ -178,9 +182,14 @@ export default function GamePage() {
   async function submitAnswer(optionIndex: number) {
     const sb = getSupabase();
     if (!sb || !game || !currentQuestion || !me || me.role === "host" || myAnswer) return;
+    setPendingPick(optionIndex);
     const { error: e } = await sb.from("answers").insert({ game_id: game.id, question_id: currentQuestion.id, player_id: me.id, option_index: optionIndex });
-    if (e) setError(e.message); else await load();
+    if (e) { setPendingPick(null); setError(e.message); } else await load();
   }
+
+  // Clear the optimistic pick when the question changes or the real answer lands.
+  useEffect(() => { setPendingPick(null); }, [currentQuestion?.id]);
+  useEffect(() => { if (myAnswer) setPendingPick(null); }, [myAnswer]);
 
   async function showResults() {
     const sb = getSupabase();
@@ -232,7 +241,7 @@ export default function GamePage() {
         <h2>Players ({players.length})</h2>
         {players.map((p) => (
           <div className="row" key={p.id}>
-            <span>{p.name}<span className="tag">{p.role}</span>{game.status !== "lobby" && <span className="tag">{totals.totalPoints[p.id] ?? 0} pts</span>}</span>
+            <span>{p.name}<span className="tag">{p.role}</span>{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
             <span>
               {isHost && game.status === "lobby" && p.role === "guest" && (
                 <button className="small" onClick={() => selectSubject(p.id)} disabled={busySubjectId !== null}>{busySubjectId === p.id ? "Picking…" : "Make subject"}</button>
@@ -269,17 +278,17 @@ export default function GamePage() {
           <p className="question-text">{questionText}</p>
           {me?.role === "host" ? (
             <div>
-              <p>The host does nothing here. You cannot see anyone&apos;s answer until Results. You can override to Results at any time.</p>
+              <p>Shown for the room — these are not buttons and you cannot pick one. You cannot see anyone&apos;s answer until Results.</p>
               <div className="host-options">
                 {currentQuestion.options.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
                 ))}
               </div>
             </div>
-          ) : myAnswer ? (
+          ) : (myAnswer || pendingPick !== null) ? (
             <div>
               <h2>✓ Answer locked in</h2>
-              <div className="my-pick">You picked: {currentQuestion.options[myAnswer.option_index]}</div>
+              <div className="my-pick">You picked: {currentQuestion.options[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</div>
               <p>Waiting for everyone else…</p>
               <p>You cannot change your answer.</p>
             </div>
@@ -304,7 +313,7 @@ export default function GamePage() {
             const isSubjectPick = round.subjectOption === i;
             return (
               <div key={i} className={isSubjectPick ? "result-option subject-pick" : "result-option"}>
-                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}{round.majorityOptions.includes(i) ? " — majority" : ""}</span><span>{total} ({pct}%)</span></div>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}{round.majorityOptions.includes(i) ? (round.majorityOptions.length > 1 ? " — tied for majority" : " — majority") : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );
@@ -315,7 +324,7 @@ export default function GamePage() {
             return (
               <div className="row" key={p.id}>
                 <span>{p.name}{!answered ? " — did not answer" : ""}</span>
-                <span>+{round.pointsThisRound[p.id] ?? 0} pts {answered ? `${round.matchedSubject[p.id] ? "(matched subject +2)" : ""} ${round.matchedMajority[p.id] ? "(majority +1)" : ""}` : "(0 — no vote)"}</span>
+                <span>+{pointsLabel(round.pointsThisRound[p.id] ?? 0)} {answered ? `${round.matchedSubject[p.id] ? "(matched subject +2)" : ""} ${round.matchedMajority[p.id] ? "(majority +1)" : ""}` : "(0 — no vote)"}</span>
               </div>
             );
           })}
@@ -329,7 +338,7 @@ export default function GamePage() {
         <div className="card">
           <h2>Final leaderboard</h2>
           {leaderboard.map((p, i) => (
-            <div className="row" key={p.id}><span>{i + 1}. {p.name}<span className="tag">{p.role}</span></span><span>{totals.totalPoints[p.id] ?? 0} pts · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
+            <div className="row" key={p.id}><span>{i + 1}. {p.name}<span className="tag">{p.role}</span></span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
           ))}
           <h2>Most matches with the subject</h2>
           {mostMatches.length > 0 ? (
@@ -345,7 +354,7 @@ export default function GamePage() {
           {runningLeaderboard.map((p, i) => (
             <div className="row" key={p.id}>
               <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.id === game.subject_player_id ? " ★" : ""}</span>
-              <span>{totals.totalPoints[p.id] ?? 0} pts · {totals.subjectMatches[p.id] ?? 0} matches</span>
+              <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
             </div>
           ))}
           {runningLeaderboard.length === 0 && <p>No players yet.</p>}

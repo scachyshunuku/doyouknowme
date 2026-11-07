@@ -50,10 +50,15 @@ main.tv { max-width: 1180px; }
 .tv h2 { font-size: 26px; }
 .tv .code { font-size: 48px; }
 .host-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
-.host-option { background: #252a47; border: 1px solid #3a4066; border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: #fff; }
+/* Read-only on purpose: dashed border and flat fill, so the host's options
+   never read as tappable buttons. */
+.host-option { background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; }
 .opt-letter { display: inline-block; background: #6c5ce7; border-radius: 8px; padding: 2px 10px; font-size: 18px; margin-right: 12px; }
 
-/* Running leaderboard: on the side on wide screens, stacked below on mobile. */
+/* Running leaderboard: on the side on wide screens, stacked below on mobile.
+   The score never wraps onto two lines. */
+.leaderboard-side .row span:last-child { white-space: nowrap; flex-shrink: 0; }
+.leaderboard-side .row span:first-child { min-width: 0; }
 .game-layout { display: block; }
 @media (min-width: 900px) {
   .tv .game-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
