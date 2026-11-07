@@ -214,9 +214,7 @@ export default function GamePage() {
   if (!game || !loaded) return <main><p>Loading game…</p></main>;
 
   const leaderboard = [...players].filter((p) => p.role !== "host").sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
-  const guests = players.filter((p) => p.role === "guest");
-  const maxMatches = guests.length > 0 ? Math.max(...guests.map((p) => totals.subjectMatches[p.id] ?? 0)) : 0;
-  const mostMatches = guests.filter((p) => (totals.subjectMatches[p.id] ?? 0) === maxMatches && maxMatches > 0);
+  const matchesLeaderboard = [...players].filter((p) => p.role !== "host").sort((a, b) => (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0) || (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
 
   return (
     <main className={isHost ? "tv" : "mobile"}>
@@ -336,16 +334,30 @@ export default function GamePage() {
       )}
 
       {game.status === "finished" && (
+        <>
         <div className="card">
           <h2>Final leaderboard</h2>
-          {leaderboard.map((p, i) => (
-            <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.id === game.subject_player_id ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
-          ))}
-          <h2>Most matches with the subject</h2>
-          {mostMatches.length > 0 ? (
-            <p><strong>{mostMatches.map((p) => p.name).join(", ")}</strong> matched the subject {maxMatches} time(s) — the most of any guest.</p>
-          ) : <p>No guest matches recorded.</p>}
+          <table className="leaderboard-table">
+            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
+            <tbody>
+              {leaderboard.map((p, i) => (
+                <tr key={p.id}><td className="rank">{i + 1}</td><td>{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+        <div className="card">
+          <h2>Most matches with the subject</h2>
+          <table className="leaderboard-table">
+            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
+            <tbody>
+              {matchesLeaderboard.map((p, i) => (
+                <tr key={p.id}><td className="rank">{i + 1}</td><td>{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        </>
       )}
       </div>
       {game.status !== "lobby" && (

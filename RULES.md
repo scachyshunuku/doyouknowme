@@ -108,9 +108,9 @@ Edge cases:
 
 ### 4. Final Leaderboard
 
-- After all questions have been answered, the game tallies the score and shows:
-  1. **Leaderboard by total points**, most points first. Subject and host are shown with 0 points, or omitted from the ranked list.
-  2. **Most matches with the subject**, as a separate stat: the person who selected the most answers the subject selected, counted as a count, not as points. Ties are shown together.
+- After all questions have been answered, the game tallies the score and shows two tables:
+  1. **Final leaderboard**, ranked by total points, most points first (rank, player, points, matches).
+  2. **Most matches with the subject**, a second table ranked by how many times each player matched the subject (rank, player, matches, points). Ties are ordered by points.
 
 ## Example
 
