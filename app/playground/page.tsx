@@ -41,17 +41,26 @@ export default function Playground() {
   const [view, setView] = useState<View>("host");
   const [frame, setFrame] = useState<"tv" | "phone">("tv");
   const [subjectName, setSubjectName] = useState("Alex");
+  const [subjectId, setSubjectId] = useState("p2");
+  const [copied, setCopied] = useState(false);
   const [qIndex, setQIndex] = useState(0);
   const [guestPicked, setGuestPicked] = useState<number | null>(null);
 
   const players: Player[] = useMemo(
     () => [
-      { id: "host", game_id: "mock", name: "Sam", role: "host", joined_at: "" },
-      { id: "subject", game_id: "mock", name: subjectName || "Alex", role: "subject", joined_at: "" },
-      { id: "g1", game_id: "mock", name: "Guest1", role: "guest", joined_at: "" },
-      { id: "g2", game_id: "mock", name: "Guest2", role: "guest", joined_at: "" },
-    ],
-    [subjectName],
+      { id: "host", name: "Sam" },
+      { id: "p2", name: "Alex" },
+      { id: "g1", name: "Guest1" },
+      { id: "g2", name: "Guest2" },
+    ].map((b) => ({
+      id: b.id,
+      game_id: "mock",
+      // The subject-name input renames whoever is currently the subject.
+      name: b.id === subjectId ? subjectName || "Alex" : b.name,
+      role: b.id === "host" ? "host" : b.id === subjectId ? "subject" : "guest",
+      joined_at: "",
+    })),
+    [subjectName, subjectId],
   );
 
   const question = QUESTIONS[qIndex];
@@ -62,19 +71,20 @@ export default function Playground() {
     const out: Answer[] = [];
     for (let qi = 0; qi <= qIndex; qi++) {
       const picks = MOCK_PICKS[qi];
-      (["subject", "g1", "g2"] as const).forEach((pid, i) => {
+      (["p2", "g1", "g2"] as const).forEach((pid, i) => {
         out.push({ id: `${QUESTIONS[qi].id}-${pid}`, game_id: "mock", question_id: QUESTIONS[qi].id, player_id: pid, option_index: picks[i], created_at: "" });
       });
     }
     return out;
   }, [qIndex]);
 
-  const totals = computeTotals(allAnswers, players, "subject", QUESTIONS.map((q) => q.id));
+  const totals = computeTotals(allAnswers, players, subjectId, QUESTIONS.map((q) => q.id));
   const currentAnswers = allAnswers.filter((a) => a.question_id === question.id);
-  const round = computeRoundResult(currentAnswers, players, "subject");
+  const round = computeRoundResult(currentAnswers, players, subjectId);
   const sortedOptions = question.options
     .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
     .sort((a, b) => b.count - a.count || a.i - b.i);
+  const maxCount = Math.max(...sortedOptions.map((o) => o.count));
   const leaderboard = [...players]
     .filter((p) => p.role !== "host")
     .sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
@@ -121,16 +131,16 @@ export default function Playground() {
           <h2>Lobby — code MOCK01</h2>
           <div className="code-row">
             <div className="code">MOCK01</div>
-            <button className="small secondary">Copy invite link</button>
+            <button className="small secondary" onClick={() => { setCopied(true); window.setTimeout(() => setCopied(false), 2000); }}>{copied ? "Copied ✓" : "Copy invite link"}</button>
           </div>
           <p>Package: Test Package (Test) · Subject: {subjectName || "Alex"} · You: Sam (host)</p>
           {players.map((p) => (
-            <div className="row" key={p.id}>
-              <span>{p.name}<span className="tag">{p.role}</span>{p.role === "subject" ? " ★ subject" : ""}</span>
-              {p.role === "guest" && <button className="small">Make subject</button>}
+            <div className="row player-row" key={p.id}>
+              <span>{p.name}{p.role === "host" && <span className="tag">host</span>}{p.role === "subject" && <span className="subject-star" title="Subject">★</span>}</span>
+              {p.role === "guest" && <button className="small" onClick={() => setSubjectId(p.id)}>Make subject</button>}
             </div>
           ))}
-          <div className="action-bar"><button>Start game</button></div>
+          <div className="action-bar"><button onClick={() => { setQIndex(0); setGuestPicked(null); setView("host"); }}>Start game</button></div>
         </div>
       )}
 
@@ -140,21 +150,20 @@ export default function Playground() {
             <div className="card">
               <h2>Question {qIndex + 1} of {QUESTIONS.length}</h2>
               <p className="question-text">{questionText}</p>
-              <p>Shown for the room — these are not buttons and you cannot pick one. You cannot see anyone&apos;s answer until Results.</p>
               <div className="host-options">
                 {question.options.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
                 ))}
               </div>
               <p><span className="pill">2/3 answered</span></p>
-              <div className="action-bar"><button className="secondary" onClick={() => setView("results")}>Override to Results</button></div>
+              <div className="action-bar"><button className="secondary" onClick={() => setView("results")}>Reveal results</button></div>
             </div>
           </div>
           <aside className="card leaderboard-side">
             <h2>Leaderboard</h2>
             {leaderboard.map((p, i) => (
               <div className="row" key={p.id}>
-                <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.role === "subject" ? " ★" : ""}</span>
+                <span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span>
                 <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
               </div>
             ))}
@@ -177,11 +186,13 @@ export default function Playground() {
               <h2>✓ Answer locked in</h2>
               <div className="my-pick">You picked: {question.options[guestPicked]}</div>
               <p>Waiting for everyone else…</p>
-              <p>You cannot change your answer.</p>
+              <h2>Standings</h2>
+              {leaderboard.map((p, i) => (
+                <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span></div>
+              ))}
               <button className="secondary" onClick={() => setGuestPicked(null)}>Reset (playground only)</button>
             </div>
           )}
-          <p>{view === "subject" ? "You are the subject. You score 0 points." : "You are a guest. Match the subject +2, match the majority +1."}</p>
         </div>
       )}
 
@@ -195,8 +206,8 @@ export default function Playground() {
                 const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
                 const isSubjectPick = round.subjectOption === i;
                 return (
-                  <div key={i} className={isSubjectPick ? "result-option subject-pick" : "result-option"}>
-                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectName || "Alex"}'s pick` : ""}{round.majorityOptions.includes(i) ? (round.majorityOptions.length > 1 ? " — tied for majority" : " — majority") : ""}</span><span>{total} ({pct}%)</span></div>
+                  <div key={i} className={`result-option${isSubjectPick ? " subject-pick" : ""}${total > 0 && total === maxCount ? " top-pick" : ""}`}>
+                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectName || "Alex"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
                     <div className="bar"><div style={{ width: `${pct}%` }} /></div>
                   </div>
                 );
@@ -205,18 +216,17 @@ export default function Playground() {
               {guests.map((p) => (
                 <div className="row" key={p.id}>
                   <span>{p.name}</span>
-                  <span>+{pointsLabel(round.pointsThisRound[p.id] ?? 0)} {round.matchedSubject[p.id] ? "(matched subject +2)" : ""} {round.matchedMajority[p.id] ? "(majority +1)" : ""}</span>
+                  <span>+{pointsLabel(round.pointsThisRound[p.id] ?? 0)}</span>
                 </div>
               ))}
-              <p>Subject scores 0 points. Host scores 0 points.</p>
-              <div className="action-bar"><button onClick={() => { setQIndex((qIndex + 1) % QUESTIONS.length); setGuestPicked(null); }}>Next question</button></div>
+              <div className="action-bar"><button onClick={() => { setGuestPicked(null); if (qIndex + 1 >= QUESTIONS.length) { setView("final"); } else { setQIndex(qIndex + 1); } }}>{qIndex + 1 >= QUESTIONS.length ? "Show final leaderboard" : "Next question"}</button></div>
             </div>
           </div>
           <aside className="card leaderboard-side">
             <h2>Leaderboard</h2>
             {leaderboard.map((p, i) => (
               <div className="row" key={p.id}>
-                <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.role === "subject" ? " ★" : ""}</span>
+                <span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span>
                 <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
               </div>
             ))}
@@ -228,7 +238,7 @@ export default function Playground() {
         <div className="card">
           <h2>Final leaderboard</h2>
           {leaderboard.map((p, i) => (
-            <div className="row" key={p.id}><span>{i + 1}. {p.name}<span className="tag">{p.role}</span></span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
+            <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
           ))}
           <h2>Most matches with the subject</h2>
           <p><strong>{mostMatches.map((p) => p.name).join(", ")}</strong> matched the subject {maxMatches} time(s) — the most of any guest.</p>

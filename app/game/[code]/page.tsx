@@ -117,6 +117,7 @@ export default function GamePage() {
         .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
         .sort((a, b) => b.count - a.count || a.i - b.i)
     : [];
+  const maxResultCount = sortedResultOptions.length > 0 ? Math.max(...sortedResultOptions.map((o) => o.count)) : 0;
 
   // Auto-advance Question -> Results when every non-host player has submitted.
   useEffect(() => {
@@ -225,7 +226,7 @@ export default function GamePage() {
         <button className="small secondary" onClick={copyInvite}>{copied ? "Copied ✓" : "Copy invite link"}</button>
       </div>
       <p style={{ textAlign: "center" }}>
-        {gamePackage ? `Package: ${gamePackage.name}${gamePackage.category ? ` (${gamePackage.category})` : ""}` : ""} · Subject: {subjectPlayer?.name ?? "not picked yet"} · You: {me ? `${me.name} (${me.role})` : "not joined on this device"}
+        {gamePackage ? `Package: ${gamePackage.name}${gamePackage.category ? ` (${gamePackage.category})` : ""}` : ""} · Subject: {subjectPlayer?.name ?? "not picked yet"} · You: {me ? me.name : "not joined on this device"}
       </p>
       {questions.length > 0 && game.status !== "lobby" && (
         <div>
@@ -240,13 +241,12 @@ export default function GamePage() {
       <div className="card">
         <h2>Players ({players.length})</h2>
         {players.map((p) => (
-          <div className="row" key={p.id}>
-            <span>{p.name}<span className="tag">{p.role}</span>{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
+          <div className="row player-row" key={p.id}>
+            <span>{p.name}{p.role === "host" && <span className="tag">host</span>}{p.id === game.subject_player_id && <span className="subject-star" title="Subject">★</span>}{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
             <span>
               {isHost && game.status === "lobby" && p.role === "guest" && (
                 <button className="small" onClick={() => selectSubject(p.id)} disabled={busySubjectId !== null}>{busySubjectId === p.id ? "Picking…" : "Make subject"}</button>
               )}
-              {isHost && game.status === "lobby" && p.role === "subject" && <span>★ subject</span>}
             </span>
           </div>
         ))}
@@ -278,7 +278,6 @@ export default function GamePage() {
           <p className="question-text">{questionText}</p>
           {me?.role === "host" ? (
             <div>
-              <p>Shown for the room — these are not buttons and you cannot pick one. You cannot see anyone&apos;s answer until Results.</p>
               <div className="host-options">
                 {currentQuestion.options.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
@@ -290,7 +289,10 @@ export default function GamePage() {
               <h2>✓ Answer locked in</h2>
               <div className="my-pick">You picked: {currentQuestion.options[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</div>
               <p>Waiting for everyone else…</p>
-              <p>You cannot change your answer.</p>
+              <h2>Standings</h2>
+              {runningLeaderboard.map((p, i) => (
+                <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.id === game.subject_player_id ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span></div>
+              ))}
             </div>
           ) : (
             <div className="options">
@@ -300,7 +302,7 @@ export default function GamePage() {
             </div>
           )}
           <p><span className="pill" aria-live="polite">{currentAnswers.length}/{nonHostPlayers.length} answered</span></p>
-          {isHost && <div className="action-bar"><button className="secondary" onClick={showResults}>Override to Results</button></div>}
+          {isHost && <div className="action-bar"><button className="secondary" onClick={showResults}>Reveal results</button></div>}
         </div>
       )}
 
@@ -312,8 +314,8 @@ export default function GamePage() {
             const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
             const isSubjectPick = round.subjectOption === i;
             return (
-              <div key={i} className={isSubjectPick ? "result-option subject-pick" : "result-option"}>
-                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}{round.majorityOptions.includes(i) ? (round.majorityOptions.length > 1 ? " — tied for majority" : " — majority") : ""}</span><span>{total} ({pct}%)</span></div>
+              <div key={i} className={`result-option${isSubjectPick ? " subject-pick" : ""}${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );
@@ -324,11 +326,10 @@ export default function GamePage() {
             return (
               <div className="row" key={p.id}>
                 <span>{p.name}{!answered ? " — did not answer" : ""}</span>
-                <span>+{pointsLabel(round.pointsThisRound[p.id] ?? 0)} {answered ? `${round.matchedSubject[p.id] ? "(matched subject +2)" : ""} ${round.matchedMajority[p.id] ? "(majority +1)" : ""}` : "(0 — no vote)"}</span>
+                <span>+{pointsLabel(round.pointsThisRound[p.id] ?? 0)}</span>
               </div>
             );
           })}
-          <p>Subject scores 0 points. Host scores 0 points. Players who did not answer get 0 and do not count as a vote.</p>
           {isHost && <div className="action-bar"><button onClick={nextQuestion}>{game.current_question_index + 1 >= questions.length ? "Show final leaderboard" : "Next question"}</button></div>}
           {!isHost && <p>Waiting for the host…</p>}
         </div>
@@ -338,13 +339,12 @@ export default function GamePage() {
         <div className="card">
           <h2>Final leaderboard</h2>
           {leaderboard.map((p, i) => (
-            <div className="row" key={p.id}><span>{i + 1}. {p.name}<span className="tag">{p.role}</span></span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
+            <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.id === game.subject_player_id ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {totals.subjectMatches[p.id] ?? 0} subject matches</span></div>
           ))}
           <h2>Most matches with the subject</h2>
           {mostMatches.length > 0 ? (
             <p><strong>{mostMatches.map((p) => p.name).join(", ")}</strong> matched the subject {maxMatches} time(s) — the most of any guest.</p>
           ) : <p>No guest matches recorded.</p>}
-          <p>Subject scores 0 points by design, so they do not appear in the points leaderboard ranking above except for their match count.</p>
         </div>
       )}
       </div>
@@ -353,7 +353,7 @@ export default function GamePage() {
           <h2>Leaderboard</h2>
           {runningLeaderboard.map((p, i) => (
             <div className="row" key={p.id}>
-              <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.id === game.subject_player_id ? " ★" : ""}</span>
+              <span>{i + 1}. {p.name}{p.id === game.subject_player_id ? " ★" : ""}</span>
               <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
             </div>
           ))}

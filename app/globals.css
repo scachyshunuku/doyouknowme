@@ -40,6 +40,11 @@ button.small.active { background: var(--gold); color: #111; }
 .bar { height: 12px; background: #2c3152; border-radius: 999px; overflow: hidden; margin: 6px 0 12px; }
 .bar > div { height: 100%; background: #6c5ce7; }
 .row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #2c3152; }
+/* Lobby player rows: every row the same height, a little roomier, so the
+   Make-subject button and the star never make one row taller than the rest. */
+.player-row { min-height: 56px; padding: 14px 0; align-items: center; }
+/* The subject is marked with a gold star, not a tag. */
+.subject-star { color: var(--gold); font-size: 18px; margin-left: 8px; }
 .row:last-child { border-bottom: 0; }
 .question-text { font-size: 20px; color: #fff; }
 
@@ -66,6 +71,10 @@ main.tv { max-width: 1180px; }
   .tv .leaderboard-side h2 { margin-top: 0; }
 }
 
+/* Results: the top-voted option(s) get a yellow highlight; the subject's
+   pick is starred and gold. */
+.result-option.top-pick { background: rgba(245, 197, 66, 0.16); border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px; margin: 4px -10px; }
+.result-option.top-pick .row { border-bottom: 0; }
 /* Results: the subject's pick is starred and highlighted. */
 .result-option.subject-pick { background: #2e2a1a; border: 2px solid #f5c542; border-radius: 12px; padding: 8px 10px; margin: 4px -10px; }
 .result-option.subject-pick .row { border-bottom: 0; }
