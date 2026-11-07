@@ -97,6 +97,14 @@ main.tv { max-width: 1180px; }
 .tab.active { color: #fff; background: var(--surface); box-shadow: inset 0 -3px 0 var(--accent); }
 .tabs + .card { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; border-top: 0; }
 
+/* Steps: the "How it works" list — one numbered step per line, not a wall
+   of text. */
+.steps { list-style: none; counter-reset: step; margin: 8px 0 0; padding: 0; }
+.steps li { counter-increment: step; position: relative; padding: 10px 0 10px 44px; line-height: 1.5; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.steps li:last-child { border-bottom: 0; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 10px; width: 30px; height: 30px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+.steps li strong { color: var(--text); }
+
 /* Code row: big code plus a copy button, so the host can share the invite
    link instead of reading the code aloud. */
 .code-row { display: flex; align-items: center; justify-content: center; gap: 12px; }

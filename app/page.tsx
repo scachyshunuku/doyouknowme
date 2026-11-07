@@ -138,7 +138,13 @@ export default function Home() {
       <p><a href="/playground">Design playground — preview every view (host TV, guest phone, results, leaderboard) with mock data</a></p>
       <div className="card">
         <h2>How it works</h2>
-        <p>1. Host starts a game and picks a question package. 2. Guests join with the code; the host picks one guest as the subject. 3. Everyone except the host picks an answer, including the subject — after answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results. 4. Results: match the subject +2, match the majority +1, max 3 per question. Subject scores 0. Players who did not answer get 0 and do not count as a vote. 5. Host hits Next Question until the end, then the leaderboard shows total points and most subject matches.</p>
+        <ol className="steps">
+          <li><strong>Host starts a game</strong> and picks a question package.</li>
+          <li><strong>Guests join with the code.</strong> The host picks one guest as the subject.</li>
+          <li><strong>Everyone except the host answers</strong>, including the subject. After answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results.</li>
+          <li><strong>Results:</strong> match the subject +2, match the majority +1, max 3 per question. Subject scores 0. Players who did not answer get 0 and do not count as a vote.</li>
+          <li><strong>Host hits Next Question</strong> until the end, then the leaderboard shows total points and most subject matches.</li>
+        </ol>
       </div>
     </main>
   );
