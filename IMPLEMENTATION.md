@@ -146,22 +146,22 @@ These tasks must be completed first as they unblock other work.
 
 ### Task 4.1: Vercel Env Vars
 
-- [ ] Set `NEXT_PUBLIC_SUPABASE_URL` on the doyouknowme Vercel project, Production and Preview
-- [ ] Set `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the doyouknowme Vercel project, Production and Preview
+- [x] Set `NEXT_PUBLIC_SUPABASE_URL` on the doyouknowme Vercel project, Production and Preview
+- [x] Set `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the doyouknowme Vercel project, Production and Preview
 - [ ] Do not use the service role key in the browser app
-- **Blockers**: User review of ARCHITECTURE.md, RULES.md, and this plan
+- **Blockers**: None
 - **Testability**: Vercel project env list shows both keys, values hidden
-- **Status**: Not started, blocked on review
+- **Status**: Done Nov 7. URL set via Vercel MCP, anon key set via a script that fetched it from Supabase and passed it to Vercel without printing it.
 
 ### Task 4.2: Deploy & Live Test
 
-- [ ] Push the Nov 7 rework (packages/games, waiting screen, subject picker) to `scachyshunuku/doyouknowme`, main — the old commit `ae994b0f` is the pre-rework code and must not be deployed as-is
-- [ ] Redeploy on Vercel after env vars are set
-- [ ] Live test: create a room, join as subject and as two guests, play one question, check Results scoring, play to Final
+- [x] Push the Nov 7 rework (packages/games, waiting screen, subject picker) to `scachyshunuku/doyouknowme`, main — commit `c19dddf5`
+- [ ] Redeploy on Vercel after env vars are set. Note: the first deployment of `c19dddf5` failed with `STATIC_BUILD_NO_OUT_DIR` because the Vercel project framework was `null` (created before any code existed). Fixed by setting the project framework to `nextjs` via update_project, then redeploying.
+- [ ] Live test: create a game, join as subject and as two guests, play one question, check Results scoring, play to Final
 - [ ] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer
 - **Blockers**: Task 4.1
 - **Testability**: Manual live test, with screenshots of Question, Results, and Final
-- **Status**: Not started, blocked on review
+- **Status**: In progress, redeploying after the framework fix
 
 ---
 
