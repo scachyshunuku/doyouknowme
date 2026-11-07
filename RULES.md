@@ -68,15 +68,17 @@ No user accounts. Players are identified by name and a player id stored in local
 - Everyone except the host has to select an answer, including the subject.
 - The host does nothing here, and cannot see any player's chosen answer, including the subject's, until Results.
 - A player can only answer once per question. After they choose, they go to a waiting screen, with no option to go back or change their answer.
+- The waiting screen shows the standings (running leaderboard), so guests can see the scores while they wait.
+- Lobby identity: the host is tagged "host"; the subject is marked with a gold star (★) beside their name, not a tag; guests get no tag. All lobby player rows are the same height.
 
 ### 2. Results
 
-- Shown automatically after everyone who is not the host has submitted, or when the host hits Override to Results.
+- Shown automatically after everyone who is not the host has submitted, or when the host hits Reveal results.
 - The Results screen shows, for the current question:
   - How many players picked each answer, sorted most answers first
+  - The top-voted option(s) highlighted in yellow (no "majority" label)
   - Which answer the subject picked, starred (★) and highlighted
-  - Which answer or answers are the majority
-  - Points awarded this round
+  - Points awarded this round, as just "+x pts" per guest — no breakdown, no subject/host text
   - Running totals
 
 #### Scoring
@@ -93,9 +95,9 @@ Majority is defined as the most-chosen option among all non-host answers submitt
 Edge cases:
 
 - **Tie for majority**: If two or more options tie for most-chosen, all tied options count as majority. Each gets +1. Confirmed by William Nov 7, 2026.
-- **Subject did not answer**: If the host overrode to Results before the subject answered, no one gets the +2 for that question. The +1 majority point still applies.
+- **Subject did not answer**: If the host revealed Results before the subject answered, no one gets the +2 for that question. The +1 majority point still applies.
 - **Subject is the only answer**: The subject's answer is also the majority, so a guest who matches the subject gets +2 and +1, for 3 points.
-- **A player did not answer**: If the host overrides to Results, anyone who has not submitted gets 0 for that question and does not count as a vote. Majority is calculated only over submitted answers.
+- **A player did not answer**: If the host reveals Results, anyone who has not submitted gets 0 for that question and does not count as a vote. Majority is calculated only over submitted answers.
 - **No answers at all**: No points are awarded. The host can move to the next question.
 
 ### 3. Next Question
