@@ -97,12 +97,12 @@ export default function Home() {
       <h1>Do You Know Me?</h1>
       <p>A party game. The host starts a game and picks a question package, picks the subject in the lobby, and guests try to pick what the subject would pick.</p>
       {!isSupabaseConfigured() && <div className="error">Supabase is not configured in this deployment. Set the Vercel env vars in the README before playing.</div>}
-      <div>
-        <button className="small" onClick={() => setMode("create")}>Start a game</button>
-        <button className="small" onClick={() => setMode("join")}>Join a game</button>
+      <div className="tabs" role="tablist" aria-label="Start or join a game">
+        <button role="tab" id="tab-create" aria-selected={mode === "create"} aria-controls="panel-create" className={mode === "create" ? "tab active" : "tab"} onClick={() => setMode("create")}>Start a game</button>
+        <button role="tab" id="tab-join" aria-selected={mode === "join"} aria-controls="panel-join" className={mode === "join" ? "tab active" : "tab"} onClick={() => setMode("join")}>Join a game</button>
       </div>
       {mode === "create" ? (
-        <div className="card">
+        <div className="card" role="tabpanel" id="panel-create" aria-labelledby="tab-create">
           <h2>Start a game (you are the host)</h2>
           <label>Your name (host)</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" />
@@ -124,7 +124,7 @@ export default function Home() {
           <button onClick={createGame} disabled={busy || packagesLoading}>{busy ? "Starting…" : "Start game"}</button>
         </div>
       ) : (
-        <div className="card">
+        <div className="card" role="tabpanel" id="panel-join" aria-labelledby="tab-join">
           <h2>Join a game</h2>
           <label>Game code</label>
           <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. ABC123" maxLength={6} />
