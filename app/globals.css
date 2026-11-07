@@ -12,6 +12,7 @@ button { width: 100%; padding: 14px; margin-top: 12px; border: 0; border-radius:
 button.secondary { background: #2c3152; }
 button:disabled { opacity: 0.5; cursor: default; }
 button.small { width: auto; padding: 8px 14px; font-size: 14px; margin: 4px 4px 0 0; }
+button.small.active { background: #f5c542; color: #111; }
 .error { background: #4a1d1d; border: 1px solid #7a2e2e; padding: 12px; border-radius: 10px; }
 .code { font-size: 36px; letter-spacing: 6px; font-weight: 800; text-align: center; }
 .options { display: grid; gap: 10px; margin-top: 12px; }

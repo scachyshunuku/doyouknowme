@@ -99,15 +99,15 @@ export default function Playground() {
         </select>
         <label>Frame</label>
         <div>
-          <button className="small" onClick={() => setFrame("tv")}>TV / computer</button>
-          <button className="small" onClick={() => setFrame("phone")}>Phone</button>
+          <button className={isTv ? "small active" : "small"} onClick={() => setFrame("tv")}>TV / computer</button>
+          <button className={!isTv ? "small active" : "small"} onClick={() => setFrame("phone")}>Phone</button>
         </div>
         <p>Frame: {isTv ? "TV / computer (wide)" : "Phone (narrow)"} · View: {VIEW_LABELS.find(([v]) => v === view)?.[1]}</p>
       </div>
 
       <div>
         {VIEW_LABELS.map(([v, label]) => (
-          <button key={v} className="small" onClick={() => { setView(v); setGuestPicked(null); }}>{label}</button>
+          <button key={v} className={view === v ? "small active" : "small"} onClick={() => { setView(v); setGuestPicked(null); }}>{label}</button>
         ))}
       </div>
 
