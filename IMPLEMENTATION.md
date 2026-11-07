@@ -159,6 +159,7 @@ These tasks must be completed first as they unblock other work.
 - [x] Redeploy on Vercel after env vars are set. Note: the first deployment of `c19dddf5` failed with `STATIC_BUILD_NO_OUT_DIR` because the Vercel project framework was `null` (created before any code existed). Fixed by setting the project framework to `nextjs` via update_project, then redeploying (commit `9eaa94ae`, deployment READY).
 - [x] Live test: game TKE7A2, host + subject, all 5 Test Package questions played to Final — waiting screen, host-cannot-see-answer, auto/override Results, final leaderboard all worked.
 - [x] Live test 2: game BXXKT6, host + subject + guest. Q1 subject Blue, guest Blue: guest +3 (+2 subject, +1 majority), subject 0. Q2 subject Cat, guest Dog (1–1 tie): guest +1 — tied options both count as majority under the current scoring rule.
+- [x] Live test 3: game UWBV5A, host + subject + 2 guessers. Q1 subject Blue, Guest1 Blue, Guest2 Red: Guest1 +3, Guest2 0. Q2 subject Cat, both guests Dog: each guest +1 (majority, no subject match). Q3 subject Beach, Guest1 Mountains, Guest2 City (1–1–1 tie): each guest +1. Totals after Q3: Guest1 5, Guest2 2, subject 0, host 0. All expected values matched.
 - [x] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer — tie rule confirmed by William Nov 7: a tie gets +1, i.e. every tied top option counts as majority.
 - **Blockers**: None
 - **Testability**: Manual live test, with screenshots of Question, Results, and Final
