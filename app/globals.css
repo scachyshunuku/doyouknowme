@@ -40,9 +40,12 @@ button.small.active { background: var(--gold); color: #111; }
 .bar { height: 12px; background: #2c3152; border-radius: 999px; overflow: hidden; margin: 6px 0 12px; }
 .bar > div { height: 100%; background: #6c5ce7; }
 .row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #2c3152; }
-/* Lobby player rows: every row the same height, a little roomier, so the
-   Make-subject button and the star never make one row taller than the rest. */
-.player-row { min-height: 56px; padding: 14px 0; align-items: center; }
+/* Lobby player rows: every row exactly the same height. The Make-subject
+   button is 44px tall, so a plain min-height lets button rows grow taller
+   than the rest — the button's margin is removed here and the row height
+   is set to fit the button (44px) plus the padding, so all rows match. */
+.player-row { min-height: 72px; padding: 14px 0; align-items: center; }
+.player-row button.small { margin: 0; }
 /* The subject is marked with a gold star, not a tag. */
 .subject-star { color: var(--gold); font-size: 18px; margin-left: 8px; }
 .row:last-child { border-bottom: 0; }
