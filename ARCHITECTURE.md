@@ -121,6 +121,9 @@ The single-column pointers are the other half of the guarantee: `games.host_play
 7. **Question Package Selection**: The host picks a question package when starting a game. On Start Game, that package's questions are copied to `game_questions` in `order_index` order, via `package_questions`. Questions play in defined order, never shuffled in v1. A package can be any length, so the game length is the length of the chosen package. No random 10-question pick in v1.
 8. **Questions Are Reusable Across Packages**: A question is standalone in `questions`. It is associated to a package through `package_questions`, with its order in that package. The same question can be in more than one package, at a different position in each. Packages are seeded in Supabase for now, no in-app package editor in v1.
 9. **Scores Are Computed**: No `total_points` column in v1. Totals are derived from `answers` plus the subject answer for each question. See RULES.md and `lib/scoring.ts`.
+10. **Question Templates**: Question text can contain `{subject}` and `{host}`. `lib/template.ts` (`renderQuestionText`) fills them in at render time, in the game page and the playground. The stored text keeps the braces; nothing in the database is per-game. Migration 0003 rewrote the seeded questions to use `{subject}`.
+11. **Host TV View, Guest Phone View**: The game page renders `main.tv` for the host (wide layout, big question text, the 4 options as a read-only list, running leaderboard as a side panel) and `main.mobile` for everyone else (narrow, big tap targets). Results sort options by most answers first and star the subject's pick.
+12. **Design Playground**: `/playground` is a mock, Supabase-free page that previews every view (lobby, host TV, guest phone, subject phone, results, final) with mock players and answers, so design feedback can be given without playing a real game. It reuses the real scoring and template helpers.
 
 ---
 

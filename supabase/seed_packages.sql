@@ -14,22 +14,22 @@ insert into public.question_packages (name, category)
 select 'Test Package', 'Test'
 where not exists (select 1 from public.question_packages where name = 'Test Package');
 
--- Test questions (new)
+-- Test questions (new). Question text can use {subject}; see lib/template.ts.
 insert into public.questions (text, options)
-select 'What is the test subject''s favourite colour?', '["Red", "Blue", "Green", "Yellow"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is the test subject''s favourite colour?');
+select 'What is {subject}''s favourite colour?', '["Red", "Blue", "Green", "Yellow"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {subject}''s favourite colour?');
 
 insert into public.questions (text, options)
-select 'What is the test subject''s favourite animal?', '["Dog", "Cat", "Penguin", "Owl"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is the test subject''s favourite animal?');
+select 'What is {subject}''s favourite animal?', '["Dog", "Cat", "Penguin", "Owl"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {subject}''s favourite animal?');
 
 insert into public.questions (text, options)
-select 'What is the test subject''s ideal test day?', '["Beach", "Mountains", "City", "Staying home"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is the test subject''s ideal test day?');
+select 'What is {subject}''s ideal test day?', '["Beach", "Mountains", "City", "Staying home"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {subject}''s ideal test day?');
 
 insert into public.questions (text, options)
-select 'What snack would the test subject pick?', '["Chips", "Popcorn", "Fruit", "Chocolate"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What snack would the test subject pick?');
+select 'What snack would {subject} pick?', '["Chips", "Popcorn", "Fruit", "Chocolate"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What snack would {subject} pick?');
 
 -- Associate the 10 existing questions to the default package, in defined order.
 -- order_index is 0-based. Do not order by created_at: the 10 were seeded in
@@ -38,16 +38,16 @@ insert into public.package_questions (question_package_id, question_id, order_in
 select p.id, q.id, v.ord
 from public.question_packages p
 join (values
-  ('What is my favourite food?', 0),
-  ('What is my dream vacation?', 1),
-  ('What is my favourite movie genre?', 2),
-  ('What is my ideal weekend?', 3),
-  ('What is my go-to drink?', 4),
-  ('What is my favourite season?', 5),
-  ('What pet would I most want?', 6),
-  ('What is my favourite way to travel?', 7),
-  ('What is my superpower of choice?', 8),
-  ('What is my favourite dessert?', 9)
+  ('What is {subject}''s favourite food?', 0),
+  ('What is {subject}''s dream vacation?', 1),
+  ('What is {subject}''s favourite movie genre?', 2),
+  ('What is {subject}''s ideal weekend?', 3),
+  ('What is {subject}''s go-to drink?', 4),
+  ('What is {subject}''s favourite season?', 5),
+  ('What pet would {subject} most want?', 6),
+  ('What is {subject}''s favourite way to travel?', 7),
+  ('What is {subject}''s superpower of choice?', 8),
+  ('What is {subject}''s favourite dessert?', 9)
 ) as v(text, ord) on true
 join public.questions q on q.text = v.text
 where p.name = 'Get to Know Me'
@@ -59,11 +59,11 @@ insert into public.package_questions (question_package_id, question_id, order_in
 select p.id, q.id, v.ord
 from public.question_packages p
 join (values
-  ('What is the test subject''s favourite colour?', 0),
-  ('What is the test subject''s favourite animal?', 1),
-  ('What is the test subject''s ideal test day?', 2),
-  ('What snack would the test subject pick?', 3),
-  ('What is my favourite season?', 4)
+  ('What is {subject}''s favourite colour?', 0),
+  ('What is {subject}''s favourite animal?', 1),
+  ('What is {subject}''s ideal test day?', 2),
+  ('What snack would {subject} pick?', 3),
+  ('What is {subject}''s favourite season?', 4)
 ) as v(text, ord) on true
 join public.questions q on q.text = v.text
 where p.name = 'Test Package'

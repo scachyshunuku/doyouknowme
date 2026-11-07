@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { getSupabase } from "../../../lib/supabase";
 import { computeRoundResult, computeTotals } from "../../../lib/scoring";
+import { renderQuestionText } from "../../../lib/template";
 import { sessionKey } from "../../../lib/types";
 import type { Answer, Game, Player, Question, QuestionPackage } from "../../../lib/types";
 
@@ -95,6 +96,21 @@ export default function GamePage() {
   const totals = computeTotals(answers, players, game?.subject_player_id ?? null, questions.map((q) => q.id));
   const round = currentQuestion ? computeRoundResult(currentAnswers, players, game?.subject_player_id ?? null) : null;
   const subjectPlayer = players.find((p) => p.id === game?.subject_player_id) ?? null;
+  const hostPlayer = players.find((p) => p.id === game?.host_player_id) ?? null;
+  // Question text is a template: {subject} and {host} are filled in here.
+  const questionText = currentQuestion
+    ? renderQuestionText(currentQuestion.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })
+    : "";
+  // Running leaderboard, most points first (subject matches break ties).
+  const runningLeaderboard = [...players]
+    .filter((p) => p.role !== "host")
+    .sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0) || (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0));
+  // Results options, most answers first (ties keep the original order).
+  const sortedResultOptions = currentQuestion && round
+    ? currentQuestion.options
+        .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
+        .sort((a, b) => b.count - a.count || a.i - b.i)
+    : [];
 
   // Auto-advance Question -> Results when every non-host player has submitted.
   useEffect(() => {
@@ -177,7 +193,7 @@ export default function GamePage() {
   const mostMatches = guests.filter((p) => (totals.subjectMatches[p.id] ?? 0) === maxMatches && maxMatches > 0);
 
   return (
-    <main>
+    <main className={isHost ? "tv" : "mobile"}>
       <p><a href="/">← Leave game</a></p>
       <div className="code">{game.code}</div>
       <p style={{ textAlign: "center" }}>
@@ -185,6 +201,8 @@ export default function GamePage() {
       </p>
       {error && <div className="error">{error}</div>}
 
+      <div className="game-layout">
+      <div className="game-main">
       <div className="card">
         <h2>Players ({players.length})</h2>
         {players.map((p) => (
@@ -223,9 +241,16 @@ export default function GamePage() {
       {game.status === "question" && currentQuestion && (
         <div className="card">
           <h2>Question {game.current_question_index + 1} of {questions.length}</h2>
-          <p style={{ fontSize: 20, color: "#fff" }}>{currentQuestion.text}</p>
+          <p className="question-text">{questionText}</p>
           {me?.role === "host" ? (
-            <p>The host does nothing here. You cannot see anyone&apos;s answer until Results. You can override to Results at any time.</p>
+            <div>
+              <p>The host does nothing here. You cannot see anyone&apos;s answer until Results. You can override to Results at any time.</p>
+              <div className="host-options">
+                {currentQuestion.options.map((opt, i) => (
+                  <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
+                ))}
+              </div>
+            </div>
           ) : myAnswer ? (
             <div>
               <h2>Answer locked in</h2>
@@ -247,13 +272,13 @@ export default function GamePage() {
       {game.status === "results" && currentQuestion && round && (
         <div className="card">
           <h2>Results — Question {game.current_question_index + 1}</h2>
-          <p style={{ fontSize: 18, color: "#fff" }}>{currentQuestion.text}</p>
-          {currentQuestion.options.map((opt, i) => {
-            const total = round.counts[i];
+          <p className="question-text">{questionText}</p>
+          {sortedResultOptions.map(({ opt, i, count: total }) => {
             const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
+            const isSubjectPick = round.subjectOption === i;
             return (
-              <div key={i}>
-                <div className="row"><span>{opt}{round.subjectOption === i ? " — subject's pick" : ""}{round.majorityOptions.includes(i) ? " — majority" : ""}</span><span>{total} ({pct}%)</span></div>
+              <div key={i} className={isSubjectPick ? "result-option subject-pick" : "result-option"}>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}{round.majorityOptions.includes(i) ? " — majority" : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );
@@ -287,6 +312,20 @@ export default function GamePage() {
           <p>Subject scores 0 points by design, so they do not appear in the points leaderboard ranking above except for their match count.</p>
         </div>
       )}
+      </div>
+      {game.status !== "lobby" && (
+        <aside className="card leaderboard-side">
+          <h2>Leaderboard</h2>
+          {runningLeaderboard.map((p, i) => (
+            <div className="row" key={p.id}>
+              <span>{i + 1}. {p.name}<span className="tag">{p.role}</span>{p.id === game.subject_player_id ? " ★" : ""}</span>
+              <span>{totals.totalPoints[p.id] ?? 0} pts · {totals.subjectMatches[p.id] ?? 0} matches</span>
+            </div>
+          ))}
+          {runningLeaderboard.length === 0 && <p>No players yet.</p>}
+        </aside>
+      )}
+      </div>
     </main>
   );
 }

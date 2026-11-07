@@ -48,6 +48,18 @@ No user accounts. Players are identified by name and a player id stored in local
 - The existing 10 generic seed questions become one default package, e.g. "Get to Know Me", category "General".
 - Questions are asked one by one. The host controls when to move on.
 
+### Question templates
+
+- A question's text can contain variables in braces: `{subject}` inserts the subject's name, `{host}` inserts the host's name. Example: "What is {subject}'s favourite food?"
+- If the subject has not been picked yet, `{subject}` reads as "the subject".
+- All seeded questions use `{subject}`.
+
+### Host screen (TV) and guest screens (phones)
+
+- The host's screen is meant to be shared on a TV or computer screen: big text, and the 4 options are listed as a read-only list. The host cannot select an answer.
+- Guests and the subject play on their phones: big tap targets, one question at a time.
+- During a game, a running leaderboard sits on the side of the host's screen (stacked below on phones), showing every non-host player's total points and subject matches, most points first.
+
 ## Stages
 
 ### 1. Question
@@ -61,8 +73,8 @@ No user accounts. Players are identified by name and a player id stored in local
 
 - Shown automatically after everyone who is not the host has submitted, or when the host hits Override to Results.
 - The Results screen shows, for the current question:
-  - How many players picked each answer
-  - Which answer the subject picked
+  - How many players picked each answer, sorted most answers first
+  - Which answer the subject picked, starred (★) and highlighted
   - Which answer or answers are the majority
   - Points awarded this round
   - Running totals

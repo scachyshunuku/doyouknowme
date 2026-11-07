@@ -160,6 +160,34 @@ These tasks must be completed first as they unblock other work.
 - [x] Live test: game TKE7A2, host + subject, all 5 Test Package questions played to Final — waiting screen, host-cannot-see-answer, auto/override Results, final leaderboard all worked.
 - [x] Live test 2: game BXXKT6, host + subject + guest. Q1 subject Blue, guest Blue: guest +3 (+2 subject, +1 majority), subject 0. Q2 subject Cat, guest Dog (1–1 tie): guest +1 — tied options both count as majority under the current scoring rule.
 - [x] Live test 3: game UWBV5A, host + subject + 2 guessers. Q1 subject Blue, Guest1 Blue, Guest2 Red: Guest1 +3, Guest2 0. Q2 subject Cat, both guests Dog: each guest +1 (majority, no subject match). Q3 subject Beach, Guest1 Mountains, Guest2 City (1–1–1 tie): each guest +1. Totals after Q3: Guest1 5, Guest2 2, subject 0, host 0. All expected values matched.
+
+---
+
+## Phase 5: TV Host View, Templates, Playground (Nov 7, per user feedback)
+
+### Task 5.1: Question templates
+
+- [x] `lib/template.ts` — `renderQuestionText(text, {subject, host})`, supports `{subject}` and `{host}`, unknown variables left as-is, unpicked subject renders as "the subject"
+- [x] Game page renders question text through the template in Question and Results stages
+- [x] `supabase/seed.sql` + `supabase/seed_packages.sql` rewritten to use `{subject}`; migration `0003_template_questions.sql` applied to the live DB (all 14 questions verified templated)
+- **Status**: Done Nov 7
+
+### Task 5.2: Host TV view + mobile guest view + running leaderboard
+
+- [x] Host renders `main.tv`: wide layout, big question text, 4 options as a read-only list (host cannot select), running leaderboard as a side panel
+- [x] Guests/subject render `main.mobile`: narrow, big tap targets
+- [x] Running leaderboard shows non-host players by total points, with subject matches, during question/results/final (side on wide screens, stacked on phones)
+- **Status**: Done Nov 7
+
+### Task 5.3: Results sorting + subject star
+
+- [x] Results options sorted most answers first (ties keep original order); subject's pick starred (★) and highlighted
+- **Status**: Done Nov 7
+
+### Task 5.4: Design playground
+
+- [x] `app/playground/page.tsx` — mock, no Supabase: view switcher (lobby, host TV, guest phone, subject phone, results, final), frame toggle (TV/computer vs phone), editable subject name, question picker, guest tap-to-answer with waiting screen. Reuses real scoring + template helpers. Linked from the home page.
+- **Status**: Done Nov 7, live test pending
 - [x] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer — tie rule confirmed by William Nov 7: a tie gets +1, i.e. every tied top option counts as majority.
 - **Blockers**: None
 - **Testability**: Manual live test, with screenshots of Question, Results, and Final
