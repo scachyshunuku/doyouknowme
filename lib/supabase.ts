@@ -18,7 +18,7 @@ export function getSupabase(): SupabaseClient | null {
   return browserClient;
 }
 
-export function generateRoomCode(): string {
+export function generateGameCode(): string {
   // 6 chars, no I/O/0/1 to avoid confusion when read aloud.
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -27,3 +27,6 @@ export function generateRoomCode(): string {
   }
   return code;
 }
+
+/** Backwards-compatible alias for the old name. */
+export const generateRoomCode = generateGameCode;
