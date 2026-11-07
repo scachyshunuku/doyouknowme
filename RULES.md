@@ -11,7 +11,7 @@ Do You Know Me? is a party quiz game. One person is the subject. Everyone else t
 
 ## Players & Roles
 
-- **Host**: 1 per game. Starts the game, picks the question package, picks the subject, controls when to move to Results and to the next question. Scores 0. Does not answer.
+- **Host**: 1 per game. Starts the game, picks the question package, picks the subject, controls when to move to Results and to the next question. Scores 0. Does not answer. The host is fixed at creation: the person who creates the game is always the host, and there is no host transfer. If the host refreshes or loses connection, they rejoin as host via the session saved on their device.
 - **Subject**: 1 per game. The main person. Answers every question. Scores 0.
 - **Guests**: Any number. Answer every question. Score points.
 
