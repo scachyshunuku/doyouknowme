@@ -18,7 +18,9 @@ export default function GamePage() {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busyStart, setBusyStart] = useState(false);
+  const [busySubjectId, setBusySubjectId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const autoAdvancedRef = useRef("");
 
   const load = useCallback(async () => {
@@ -122,27 +124,41 @@ export default function GamePage() {
     if (sb) void sb.from("games").update({ status: "results" }).eq("id", game.id);
   }, [game, allSubmitted, isHost, currentQuestion]);
 
+  async function copyInvite() {
+    const url = `${window.location.origin}/game/${code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard API unavailable (older browsers): fall back to selecting the code.
+      const el = document.querySelector(".code");
+      if (el) window.getSelection()?.selectAllChildren(el);
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
   async function selectSubject(playerId: string) {
     const sb = getSupabase();
     if (!sb || !game || !isHost || game.status !== "lobby") return;
-    setBusy(true); setError("");
+    setBusySubjectId(playerId); setError("");
     const chosen = players.find((p) => p.id === playerId);
-    if (!chosen || chosen.role === "host") { setBusy(false); return setError("Pick a guest to be the subject."); }
+    if (!chosen || chosen.role === "host") { setBusySubjectId(null); return setError("Pick a guest to be the subject."); }
     // Demote the old subject first (the partial unique index allows only one),
     // then promote the chosen guest, then point the game at them.
     const { error: demoteErr } = await sb.from("players").update({ role: "guest" }).eq("game_id", game.id).eq("role", "subject");
-    if (demoteErr) { setBusy(false); return setError(demoteErr.message); }
+    if (demoteErr) { setBusySubjectId(null); return setError(demoteErr.message); }
     const { error: promoteErr } = await sb.from("players").update({ role: "subject" }).eq("id", playerId);
-    if (promoteErr) { setBusy(false); return setError(promoteErr.message); }
+    if (promoteErr) { setBusySubjectId(null); return setError(promoteErr.message); }
     const { error: gameErr } = await sb.from("games").update({ subject_player_id: playerId, subject_name: chosen.name }).eq("id", game.id);
-    if (gameErr) { setBusy(false); return setError(gameErr.message); }
-    setBusy(false); await load();
+    if (gameErr) { setBusySubjectId(null); return setError(gameErr.message); }
+    setBusySubjectId(null); await load();
   }
 
   async function startGame() {
     const sb = getSupabase();
     if (!sb || !game || !isHost || !game.subject_player_id || !game.question_package_id) return;
-    setBusy(true); setError("");
+    setBusyStart(true); setError("");
     if (questions.length === 0) {
       // Copy the package's questions, in defined order, into game_questions.
       const { data: pqData, error: pqErr } = await sb
@@ -150,13 +166,13 @@ export default function GamePage() {
         .select("question_id, order_index")
         .eq("question_package_id", game.question_package_id)
         .order("order_index");
-      if (pqErr || !pqData || pqData.length === 0) { setBusy(false); return setError("This question package has no questions. Seed it in Supabase first."); }
+      if (pqErr || !pqData || pqData.length === 0) { setBusyStart(false); return setError("This question package has no questions. Seed it in Supabase first."); }
       const rows = (pqData as { question_id: string; order_index: number }[]).map((r) => ({ game_id: game.id, question_id: r.question_id, order_index: r.order_index }));
       const { error: gqErr } = await sb.from("game_questions").insert(rows);
-      if (gqErr) { setBusy(false); return setError(gqErr.message); }
+      if (gqErr) { setBusyStart(false); return setError(gqErr.message); }
     }
     await sb.from("games").update({ status: "question", current_question_index: 0 }).eq("id", game.id);
-    setBusy(false); await load();
+    setBusyStart(false); await load();
   }
 
   async function submitAnswer(optionIndex: number) {
@@ -195,10 +211,19 @@ export default function GamePage() {
   return (
     <main className={isHost ? "tv" : "mobile"}>
       <p><a href="/">← Leave game</a></p>
-      <div className="code">{game.code}</div>
+      <div className="code-row">
+        <div className="code">{game.code}</div>
+        <button className="small secondary" onClick={copyInvite}>{copied ? "Copied ✓" : "Copy invite link"}</button>
+      </div>
       <p style={{ textAlign: "center" }}>
         {gamePackage ? `Package: ${gamePackage.name}${gamePackage.category ? ` (${gamePackage.category})` : ""}` : ""} · Subject: {subjectPlayer?.name ?? "not picked yet"} · You: {me ? `${me.name} (${me.role})` : "not joined on this device"}
       </p>
+      {questions.length > 0 && game.status !== "lobby" && (
+        <div>
+          <div className="progress"><div style={{ width: `${Math.round(((game.status === "finished" ? questions.length : game.current_question_index + (game.status === "results" ? 1 : 0)) / questions.length) * 100)}%` }} /></div>
+          <p className="progress-label">Question {Math.min(game.current_question_index + 1, questions.length)} of {questions.length}</p>
+        </div>
+      )}
       {error && <div className="error">{error}</div>}
 
       <div className="game-layout">
@@ -210,7 +235,7 @@ export default function GamePage() {
             <span>{p.name}<span className="tag">{p.role}</span>{game.status !== "lobby" && <span className="tag">{totals.totalPoints[p.id] ?? 0} pts</span>}</span>
             <span>
               {isHost && game.status === "lobby" && p.role === "guest" && (
-                <button className="small" onClick={() => selectSubject(p.id)} disabled={busy}>Make subject</button>
+                <button className="small" onClick={() => selectSubject(p.id)} disabled={busySubjectId !== null}>{busySubjectId === p.id ? "Picking…" : "Make subject"}</button>
               )}
               {isHost && game.status === "lobby" && p.role === "subject" && <span>★ subject</span>}
             </span>
@@ -228,7 +253,7 @@ export default function GamePage() {
           {isHost ? (
             <>
               <p>Pick one guest to be the subject, then start. The game cannot start until a subject is picked.</p>
-              <button onClick={startGame} disabled={busy || !game.subject_player_id || players.length < 2}>{busy ? "Starting…" : "Start game"}</button>
+              <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2}>{busyStart ? "Starting…" : "Start game"}</button></div>
               {!game.subject_player_id && <p>Pick a subject first — tap “Make subject” next to a guest.</p>}
             </>
           ) : (
@@ -253,8 +278,9 @@ export default function GamePage() {
             </div>
           ) : myAnswer ? (
             <div>
-              <h2>Answer locked in</h2>
-              <p>Waiting for everyone else… ({currentAnswers.length}/{nonHostPlayers.length} submitted)</p>
+              <h2>✓ Answer locked in</h2>
+              <div className="my-pick">You picked: {currentQuestion.options[myAnswer.option_index]}</div>
+              <p>Waiting for everyone else…</p>
               <p>You cannot change your answer.</p>
             </div>
           ) : (
@@ -264,8 +290,8 @@ export default function GamePage() {
               ))}
             </div>
           )}
-          <p>{currentAnswers.length}/{nonHostPlayers.length} submitted</p>
-          {isHost && <button className="secondary" onClick={showResults}>Override to Results</button>}
+          <p><span className="pill" aria-live="polite">{currentAnswers.length}/{nonHostPlayers.length} answered</span></p>
+          {isHost && <div className="action-bar"><button className="secondary" onClick={showResults}>Override to Results</button></div>}
         </div>
       )}
 
@@ -294,7 +320,7 @@ export default function GamePage() {
             );
           })}
           <p>Subject scores 0 points. Host scores 0 points. Players who did not answer get 0 and do not count as a vote.</p>
-          {isHost && <button onClick={nextQuestion}>{game.current_question_index + 1 >= questions.length ? "Show final leaderboard" : "Next question"}</button>}
+          {isHost && <div className="action-bar"><button onClick={nextQuestion}>{game.current_question_index + 1 >= questions.length ? "Show final leaderboard" : "Next question"}</button></div>}
           {!isHost && <p>Waiting for the host…</p>}
         </div>
       )}

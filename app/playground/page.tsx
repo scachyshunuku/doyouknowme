@@ -111,9 +111,18 @@ export default function Playground() {
         ))}
       </div>
 
+      <div>
+        <div className="progress"><div style={{ width: `${Math.round(((view === "final" ? QUESTIONS.length : qIndex + (view === "results" ? 1 : 0)) / QUESTIONS.length) * 100)}%` }} /></div>
+        <p className="progress-label">Question {qIndex + 1} of {QUESTIONS.length}</p>
+      </div>
+
       {view === "lobby" && (
         <div className="card">
           <h2>Lobby — code MOCK01</h2>
+          <div className="code-row">
+            <div className="code">MOCK01</div>
+            <button className="small secondary">Copy invite link</button>
+          </div>
           <p>Package: Test Package (Test) · Subject: {subjectName || "Alex"} · You: Sam (host)</p>
           {players.map((p) => (
             <div className="row" key={p.id}>
@@ -121,7 +130,7 @@ export default function Playground() {
               {p.role === "guest" && <button className="small">Make subject</button>}
             </div>
           ))}
-          <button>Start game</button>
+          <div className="action-bar"><button>Start game</button></div>
         </div>
       )}
 
@@ -137,8 +146,8 @@ export default function Playground() {
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
                 ))}
               </div>
-              <p>2/3 submitted</p>
-              <button className="secondary" onClick={() => setView("results")}>Override to Results</button>
+              <p><span className="pill">2/3 answered</span></p>
+              <div className="action-bar"><button className="secondary" onClick={() => setView("results")}>Override to Results</button></div>
             </div>
           </div>
           <aside className="card leaderboard-side">
@@ -165,8 +174,9 @@ export default function Playground() {
             </div>
           ) : (
             <div>
-              <h2>Answer locked in</h2>
-              <p>Waiting for everyone else… (3/3 submitted)</p>
+              <h2>✓ Answer locked in</h2>
+              <div className="my-pick">You picked: {question.options[guestPicked]}</div>
+              <p>Waiting for everyone else…</p>
               <p>You cannot change your answer.</p>
               <button className="secondary" onClick={() => setGuestPicked(null)}>Reset (playground only)</button>
             </div>
@@ -199,7 +209,7 @@ export default function Playground() {
                 </div>
               ))}
               <p>Subject scores 0 points. Host scores 0 points.</p>
-              <button onClick={() => { setQIndex((qIndex + 1) % QUESTIONS.length); setGuestPicked(null); }}>Next question</button>
+              <div className="action-bar"><button onClick={() => { setQIndex((qIndex + 1) % QUESTIONS.length); setGuestPicked(null); }}>Next question</button></div>
             </div>
           </div>
           <aside className="card leaderboard-side">

@@ -187,6 +187,30 @@ These tasks must be completed first as they unblock other work.
 ### Task 5.4: Design playground
 
 - [x] `app/playground/page.tsx` — mock, no Supabase: view switcher (lobby, host TV, guest phone, subject phone, results, final), frame toggle (TV/computer vs phone), editable subject name, question picker, guest tap-to-answer with waiting screen. Reuses real scoring + template helpers. Linked from the home page.
+- **Status**: Done Nov 7, live-tested (game F72V5T + playground pass), active-button highlight fixed after test
+
+---
+
+## Phase 6: Mobile-first UX pass (Nov 7, per user feedback)
+
+Mobile-first for guests/subject, TV/laptop for the host. One token set in `app/globals.css` (`:root` vars) keeps every view consistent.
+
+### Task 6.1: Viewport, safe areas, focus, touch targets
+
+- [x] `app/layout.tsx` — explicit viewport (device-width, initial-scale 1, viewport-fit cover) + theme-color
+- [x] Safe-area insets on main padding and the sticky action bar (notched phones, home indicator)
+- [x] `:focus-visible` gold outline on buttons/links; 16px inputs (no iOS zoom on focus)
+- [x] Primary touch target 52px, small buttons 44px minimum (iOS/Android guidance)
+- **Status**: Done Nov 7
+
+### Task 6.2: Progress, feedback, sharing
+
+- [x] Progress bar + "Question X of Y" on question/results/final, game page and playground
+- [x] Waiting screen shows your own pick ("You picked: Blue") as confirmation
+- [x] Submitted count as a status pill with `aria-live="polite"`
+- [x] "Copy invite link" button next to the game code (clipboard, with fallback)
+- [x] Host's primary action (Start / Override / Next) in a sticky bottom action bar, in thumb reach
+- [x] Fixed shared-`busy` bug: picking a subject no longer makes the Start button flash "Starting…" (separate `busyStart` / `busySubjectId` states)
 - **Status**: Done Nov 7, live test pending
 - [x] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer — tie rule confirmed by William Nov 7: a tie gets +1, i.e. every tied top option counts as majority.
 - **Blockers**: None
