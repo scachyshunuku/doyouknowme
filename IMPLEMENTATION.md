@@ -159,10 +159,10 @@ These tasks must be completed first as they unblock other work.
 - [x] Redeploy on Vercel after env vars are set. Note: the first deployment of `c19dddf5` failed with `STATIC_BUILD_NO_OUT_DIR` because the Vercel project framework was `null` (created before any code existed). Fixed by setting the project framework to `nextjs` via update_project, then redeploying (commit `9eaa94ae`, deployment READY).
 - [x] Live test: game TKE7A2, host + subject, all 5 Test Package questions played to Final — waiting screen, host-cannot-see-answer, auto/override Results, final leaderboard all worked.
 - [x] Live test 2: game BXXKT6, host + subject + guest. Q1 subject Blue, guest Blue: guest +3 (+2 subject, +1 majority), subject 0. Q2 subject Cat, guest Dog (1–1 tie): guest +1 — tied options both count as majority under the current scoring rule.
-- [ ] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer — tie rule is William's call, see below.
+- [x] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer — tie rule confirmed by William Nov 7: a tie gets +1, i.e. every tied top option counts as majority.
 - **Blockers**: None
 - **Testability**: Manual live test, with screenshots of Question, Results, and Final
-- **Status**: Done Nov 7, except the tie rule: `lib/scoring.ts` counts every tied top option as majority (+1 each). William never ruled on ties — if he wants only a unique majority to earn +1, change scoring and retest.
+- **Status**: Done Nov 7. Live-tested, tie rule confirmed, no code change needed — `lib/scoring.ts` already implements it.
 
 ---
 

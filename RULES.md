@@ -80,7 +80,7 @@ Majority is defined as the most-chosen option among all non-host answers submitt
 
 Edge cases:
 
-- **Tie for majority**: If two or more options tie for most-chosen, all tied options count as majority. Each gets +1.
+- **Tie for majority**: If two or more options tie for most-chosen, all tied options count as majority. Each gets +1. Confirmed by William Nov 7, 2026.
 - **Subject did not answer**: If the host overrode to Results before the subject answered, no one gets the +2 for that question. The +1 majority point still applies.
 - **Subject is the only answer**: The subject's answer is also the majority, so a guest who matches the subject gets +2 and +1, for 3 points.
 - **A player did not answer**: If the host overrides to Results, anyone who has not submitted gets 0 for that question and does not count as a vote. Majority is calculated only over submitted answers.
