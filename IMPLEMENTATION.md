@@ -211,7 +211,8 @@ Mobile-first for guests/subject, TV/laptop for the host. One token set in `app/g
 - [x] "Copy invite link" button next to the game code (clipboard, with fallback)
 - [x] Host's primary action (Start / Override / Next) in a sticky bottom action bar, in thumb reach
 - [x] Fixed shared-`busy` bug: picking a subject no longer makes the Start button flash "Starting…" (separate `busyStart` / `busySubjectId` states)
-- **Status**: Done Nov 7, live test pending
+- **Status**: Done Nov 7, live-tested (game DS73SN): copy invite → "Copied ✓", no "Starting…" flash, waiting screen shows your pick, sticky action bar, progress bar advances. Playground phone frame: no overflow, tap targets ~50px+
+- **Follow-up fixes from that test** (commit 6b8a3486): optimistic pick on tap (waiting screen shows instantly, no 1–2s dead beat), "1 pt" grammar via `lib/format.ts`, tied options labelled "tied for majority" instead of "majority", host options restyled as dashed read-only tiles with a "not buttons" caption, leaderboard scores never wrap, playground progress label de-duplicated
 - [x] Check the scoring edge cases in RULES.md, especially majority tie and subject did not answer — tie rule confirmed by William Nov 7: a tie gets +1, i.e. every tied top option counts as majority.
 - **Blockers**: None
 - **Testability**: Manual live test, with screenshots of Question, Results, and Final
