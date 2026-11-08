@@ -18,9 +18,14 @@ const QUESTIONS: Question[] = [
 ];
 
 // Mock answers per question: [subject, guest1, guest2] option indexes.
+// Q2 is deliberate: the guests agree on Dog (2 votes) while the subject
+// picked Cat, so the Results view shows the yellow top-pick highlight and
+// the gold subject-pick star on DIFFERENT options. The other questions
+// keep the top choice equal to the subject's pick, so both cases are
+// previewable in the playground.
 const MOCK_PICKS: number[][] = [
   [1, 1, 0],
-  [1, 0, 1],
+  [1, 0, 0],
   [0, 0, 2],
   [3, 0, 3],
   [1, 1, 3],
