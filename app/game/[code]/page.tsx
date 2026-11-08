@@ -312,7 +312,7 @@ export default function GamePage() {
             const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
             const isSubjectPick = round.subjectOption === i;
             return (
-              <div key={i} className={`result-option${isSubjectPick ? " subject-pick" : ""}${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
+              <div key={i} className={`result-option${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
                 <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
