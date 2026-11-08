@@ -74,13 +74,17 @@ main.tv { max-width: 1180px; }
   .tv .leaderboard-side h2 { margin-top: 0; }
 }
 
-/* Results: the top-voted option(s) get a yellow highlight; the subject's
-   pick is starred and gold. */
-.result-option.top-pick { background: rgba(245, 197, 66, 0.16); border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px; margin: 4px -10px; }
-.result-option.top-pick .row { border-bottom: 0; }
-/* Results: the subject's pick is starred and highlighted. */
+/* Results: the subject's pick is starred and gold. */
 .result-option.subject-pick { background: #2e2a1a; border: 2px solid #f5c542; border-radius: 12px; padding: 8px 10px; margin: 4px -10px; }
 .result-option.subject-pick .row { border-bottom: 0; }
+/* Results: the top-voted option(s) get a solid yellow highlight with dark
+   text — deliberately different from the subject-pick's dark gold-brown, so
+   the two are never confused. This block comes after .subject-pick, so when
+   one option is both top-voted AND the subject's pick, the yellow fill wins
+   and the star (which is text) still shows. */
+.result-option.top-pick { background: var(--gold); border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px; margin: 4px -10px; color: #14141f; }
+.result-option.top-pick .row { border-bottom: 0; }
+.result-option.top-pick .bar { background: rgba(0, 0, 0, 0.18); }
 
 /* Guest / subject phones: big tap targets, roomy text. */
 @media (max-width: 640px) {
