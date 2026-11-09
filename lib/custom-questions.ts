@@ -15,8 +15,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * (bank positions are 0..N-1), so customs always sort after the bank.
  */
 
-export const MAX_CUSTOM_QUESTION_LENGTH = 140;
-export const MAX_CUSTOM_CHOICE_LENGTH = 50;
+export const MAX_CUSTOM_QUESTION_LENGTH = 300;
+export const MAX_CUSTOM_CHOICE_LENGTH = 150;
 
 export type CustomQuestionInput = {
   question: string;

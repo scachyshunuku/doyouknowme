@@ -7,6 +7,7 @@ import { matchesLabel, pointsLabel } from "../../lib/format";
 import { computeRoundResult } from "../../lib/scoring";
 import { shuffledOptions } from "../../lib/shuffle";
 import { renderQuestionText } from "../../lib/template";
+import ExpandableText from "../ExpandableText";
 
 export default function FinalCard({ g }: { g: GameState }) {
   const { game, players, questions, answers, myPlayerId, skippedIds, isHost, totals, subjectPlayer, hostPlayer, leaderboard, matchesLeaderboard, playAgain } = g;
@@ -46,12 +47,13 @@ export default function FinalCard({ g }: { g: GameState }) {
             const starAnswer = qAnswers.find((a) => a.player_id === game.subject_player_id);
             const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
             const isSkipped = skippedIds.has(q.id);
+            const reviewText = renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null });
             return (
               <div className="review-question" key={q.id}>
-                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })}{isSkipped ? " — Skipped" : ""}</p>
+                <p className={reviewText.length > 150 ? "question-text long" : "question-text"}>Q{qi + 1}. {reviewText}{isSkipped ? " — Skipped" : ""}</p>
                 <div className="review-row">
                   <span className="review-name">{subjectPlayer?.name ?? "the star"} ★</span>
-                  <span className="review-answer">{starPick ?? "did not answer"}</span>
+                  <span className="review-answer">{starPick ? <ExpandableText text={starPick} /> : "did not answer"}</span>
                   <span className="review-points" />
                 </div>
                 {players.filter((p) => p.role === "guest").map((p) => {
@@ -61,7 +63,7 @@ export default function FinalCard({ g }: { g: GameState }) {
                   return (
                     <div className="review-row" key={p.id}>
                       <span className="review-name">{p.name}{p.id === myPlayerId ? " (you)" : ""}</span>
-                      <span className="review-answer">{pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
+                      <span className="review-answer">{pick ? <ExpandableText text={pick} /> : "did not answer"}{matchedStar ? " ✓" : ""}</span>
                       <span className="review-points">+{pointsLabel(isSkipped ? 0 : (qRound.pointsThisRound[p.id] ?? 0))}</span>
                     </div>
                   );

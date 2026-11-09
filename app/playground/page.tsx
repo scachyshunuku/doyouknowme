@@ -6,6 +6,7 @@ import { shuffledOptions } from "../../lib/shuffle";
 import { matchesLabel, pointsLabel } from "../../lib/format";
 import { leaderboardPlayers, sortByMatches, sortByPoints } from "../../lib/leaderboard";
 import CustomQuestionForm from "../../components/CustomQuestionForm";
+import ExpandableText from "../../components/ExpandableText";
 import { emptyCustomQuestion } from "../../lib/custom-questions";
 import type { Answer, GameQuestion, Player } from "../../lib/types";
 
@@ -16,7 +17,11 @@ import type { Answer, GameQuestion, Player } from "../../lib/types";
 const QUESTIONS: GameQuestion[] = [
   { id: "q1", game_id: "mock", text: "What is {subject}'s favourite colour?", options: ["Red", "Blue", "Green", "Yellow"], order_index: 0, is_custom: false, skipped: false, created_by_player_id: null },
   { id: "q2", game_id: "mock", text: "What is {subject}'s favourite animal?", options: ["Dog", "Cat", "Penguin", "Owl"], order_index: 1, is_custom: false, skipped: false, created_by_player_id: null },
-  { id: "q3", game_id: "mock", text: "What is {subject}'s ideal test day?", options: ["Beach", "Mountains", "City", "Staying home"], order_index: 2, is_custom: false, skipped: false, created_by_player_id: null },
+  // Long-text preview: a near-max question (~280 chars) with near-max
+  // options (~140 chars each), so the long-text UI (smaller fonts,
+  // single-column host options, tap-to-expand on Results/review) is
+  // previewable here instead of only in a live game.
+  { id: "q3", game_id: "mock", text: "Imagine {subject} is planning a surprise weekend trip for the whole group and can only pick one destination — which place would they choose if they wanted somewhere with great food, a beach nearby, and a city they have never visited before?", options: ["A quiet coastal town in Portugal with tiny seafood restaurants, long sandy beaches, and a historic old town to wander through in the evenings", "A busy city in Japan with incredible ramen shops on every corner, late-night markets, and day trips to hot springs in the mountains", "A mountain lodge in the Swiss Alps with cheese fondue every night, hiking trails right outside the door, and a lake for swimming in summer", "A tropical island in Thailand with street food stalls, snorkelling off white-sand beaches, and a night market full of handmade souvenirs"], order_index: 2, is_custom: false, skipped: false, created_by_player_id: null },
   { id: "q4", game_id: "mock", text: "What snack would {subject} pick?", options: ["Chips", "Popcorn", "Fruit", "Chocolate"], order_index: 3, is_custom: false, skipped: false, created_by_player_id: null },
   { id: "q5", game_id: "mock", text: "What is {subject}'s favourite season?", options: ["Spring", "Summer", "Autumn", "Winter"], order_index: 4, is_custom: false, skipped: false, created_by_player_id: null },
 ];
@@ -88,6 +93,10 @@ export default function Playground() {
   // Same shuffle as the real game (fixed "playground" game id, so the mock
   // order is stable). Q2's mock picks still land on Dog/Cat in this order.
   const displayOptions = shuffledOptions(question.options, "playground", question.id);
+  // Long-text UI (mirrors the real cards): smaller fonts for a long
+  // question, smaller + single-column options when any option is long.
+  const longQuestion = questionText.length > 150;
+  const longOptions = displayOptions.some((o) => o.length > 100);
 
   // Mock answers for every question so far, for running totals.
   const allAnswers: Answer[] = useMemo(() => {
@@ -238,8 +247,8 @@ export default function Playground() {
           <div className="game-main">
             <div className="card">
               <h2>Question {qIndex + 1} of {QUESTIONS.length}</h2>
-              <p className="question-text">{questionText}</p>
-              <div className="host-options">
+              <p className={longQuestion ? "question-text long" : "question-text"}>{questionText}</p>
+              <div className={longOptions ? "host-options long-options" : "host-options"}>
                 {displayOptions.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
                 ))}
@@ -263,9 +272,9 @@ export default function Playground() {
       {(view === "guest" || view === "subject") && (
         <div className="card">
           <h2>Question {qIndex + 1} of {QUESTIONS.length}</h2>
-          <p className="question-text">{questionText}</p>
+          <p className={longQuestion ? "question-text long" : "question-text"}>{questionText}</p>
           {guestPicked === null ? (
-            <div className="options">
+            <div className={longOptions ? "options long-options" : "options"}>
               {displayOptions.map((opt, i) => (
                 <button key={i} onClick={() => setGuestPicked(i)}>{opt}</button>
               ))}
@@ -273,7 +282,7 @@ export default function Playground() {
           ) : (
             <div>
               <h2>✓ Answer locked in</h2>
-              <div className="my-pick">You picked: {displayOptions[guestPicked]}</div>
+              <div className={longOptions ? "my-pick long" : "my-pick"}>You picked: {displayOptions[guestPicked]}</div>
               <p>Waiting for everyone else…</p>
               <button className="secondary" onClick={() => setGuestPicked(null)}>Reset (playground only)</button>
             </div>
@@ -286,7 +295,7 @@ export default function Playground() {
           <div className="game-main">
             <div className="card">
               <h2>Results — Question {qIndex + 1}</h2>
-              <p className="question-text">{questionText}</p>
+              <p className={longQuestion ? "question-text long" : "question-text"}>{questionText}</p>
               {sortedOptions.map(({ opt, i, count: total }) => {
                 const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
                 const isSubjectPick = round.subjectOption === i;
@@ -297,7 +306,7 @@ export default function Playground() {
                 ];
                 return (
                   <div key={i} className={`result-option${total > 0 && total === maxCount ? " top-pick" : ""}`}>
-                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
+                    <div className="row"><span>{isSubjectPick ? "★ " : ""}<ExpandableText text={opt} />{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
                     <div className="bar"><div style={{ width: `${pct}%` }} /></div>
                   </div>
                 );
@@ -357,12 +366,13 @@ export default function Playground() {
             const starAnswer = qAnswers.find((a) => a.player_id === subjectId);
             const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
             const isSkipped = skippedIds.includes(q.id);
+            const reviewText = renderQuestionText(q.text, { subject: subjectName, host: "Sam" });
             return (
               <div className="review-question" key={q.id}>
-                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectName, host: "Sam" })}{isSkipped ? " — Skipped" : ""}</p>
+                <p className={reviewText.length > 150 ? "question-text long" : "question-text"}>Q{qi + 1}. {reviewText}{isSkipped ? " — Skipped" : ""}</p>
                 <div className="review-row">
                   <span className="review-name">{subjectName || "Alex"} ★</span>
-                  <span className="review-answer">{starPick ?? "did not answer"}</span>
+                  <span className="review-answer">{starPick ? <ExpandableText text={starPick} /> : "did not answer"}</span>
                   <span className="review-points" />
                 </div>
                 {guests.map((p) => {
@@ -372,7 +382,7 @@ export default function Playground() {
                   return (
                     <div className="review-row" key={p.id}>
                       <span className="review-name">{p.name}</span>
-                      <span className="review-answer">{pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
+                      <span className="review-answer">{pick ? <ExpandableText text={pick} /> : "did not answer"}{matchedStar ? " ✓" : ""}</span>
                       <span className="review-points">+{pointsLabel(isSkipped ? 0 : (qRound.pointsThisRound[p.id] ?? 0))}</span>
                     </div>
                   );

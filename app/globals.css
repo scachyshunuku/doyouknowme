@@ -64,11 +64,28 @@ button.small.active { background: var(--gold); color: #111; }
 .subject-star { color: var(--gold); font-size: 18px; margin-left: 8px; }
 .row:last-child { border-bottom: 0; }
 .question-text { font-size: 20px; color: #fff; }
+/* Long text (questions up to 300 chars, options up to 150) gets smaller
+   fonts so it stays readable without pushing everything off-screen. */
+.question-text.long { font-size: 18px; line-height: 1.4; }
+.options.long-options button { font-size: 16px; line-height: 1.4; }
+.my-pick.long { font-size: 16px; line-height: 1.4; }
+/* Long host options drop to a single column: a list reads better than a
+   tall uneven 2-column grid, and the tiles shrink to match. */
+.host-options.long-options { grid-template-columns: 1fr; }
+.host-options.long-options .host-option { font-size: 18px; padding: 16px; }
+/* Expandable long text (Results + answer review): clamped to 3 lines with
+   "…show more", expands in place on tap. Short text renders as-is. The
+   hint is a sibling of the clamped text, not inside it — line-clamp would
+   hide a hint placed inside. */
+.expandable-wrap { cursor: pointer; }
+.expandable.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.expandable-wrap .expand-hint { color: var(--gold); font-size: 0.85em; white-space: nowrap; }
 
 /* Host TV view: wide, big text, meant to be shared on a TV or computer screen.
    The host sees the 4 options as a read-only list and cannot select one. */
 main.tv { max-width: 1680px; }
 .tv .question-text { font-size: 40px; line-height: 1.25; font-weight: 700; }
+.tv .question-text.long { font-size: 28px; }
 .tv h2 { font-size: 26px; }
 .tv .code { font-size: 48px; }
 .host-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }

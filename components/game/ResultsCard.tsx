@@ -4,16 +4,18 @@
 // unconditionally and each card decides whether it shows.
 import type { GameState } from "../../lib/use-game";
 import { pointsLabel } from "../../lib/format";
+import ExpandableText from "../ExpandableText";
 
 export default function ResultsCard({ g }: { g: GameState }) {
   const { game, players, questions, isHost, currentQuestion, currentAnswers, myAnswer, round, subjectPlayer, questionText, sortedResultOptions, maxResultCount, nextQuestion } = g;
   if (!game) return null;
+  const longQuestion = questionText.length > 150;
   return (
     <>
       {game.status === "results" && currentQuestion && round && (
         <div className="card">
           <h2>Results — Question {game.current_question_index + 1}</h2>
-          <p className="question-text">{questionText}</p>
+          <p className={longQuestion ? "question-text long" : "question-text"}>{questionText}</p>
           {sortedResultOptions.map(({ opt, i, count: total }) => {
             const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
             const isSubjectPick = round.subjectOption === i;
@@ -24,7 +26,7 @@ export default function ResultsCard({ g }: { g: GameState }) {
             ];
             return (
               <div key={i} className={`result-option${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
-                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}<ExpandableText text={opt} />{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );
