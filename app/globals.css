@@ -69,10 +69,15 @@ main.tv { max-width: 1180px; }
 .leaderboard-side .row span:first-child { min-width: 0; }
 .game-layout { display: block; }
 @media (min-width: 900px) {
-  .tv .game-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
-  .tv .leaderboard-side { position: sticky; top: 16px; }
-  .tv .leaderboard-side h2 { margin-top: 0; }
+  .tv .game-layout.with-leaderboard { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+  .tv .game-layout.with-leaderboard .leaderboard-side { position: sticky; top: 16px; }
+  .tv .game-layout.with-leaderboard .leaderboard-side h2 { margin-top: 0; }
 }
+/* Player name + tag/star: flex-centred, so the "host" pill sits on the
+   vertical middle of the name instead of on its baseline. */
+.player-name { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.player-name .tag { margin-left: 0; }
+.player-name .subject-star { margin-left: 0; }
 
 /* Results: the top-voted option(s) get a gold border with a gold tint —
    nothing more. The subject's pick gets NO highlight at all: the star and

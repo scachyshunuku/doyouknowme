@@ -234,13 +234,13 @@ export default function GamePage() {
       )}
       {error && <div className="error">{error}</div>}
 
-      <div className="game-layout">
+      <div className={game.status !== "lobby" ? "game-layout with-leaderboard" : "game-layout"}>
       <div className="game-main">
       <div className="card">
         <h2>Players ({players.length})</h2>
         {players.map((p) => (
           <div className="row player-row" key={p.id}>
-            <span>{p.name}{p.role === "host" && <span className="tag">host</span>}{p.id === game.subject_player_id && <span className="subject-star" title="Subject">★</span>}{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
+            <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.id === game.subject_player_id && <span className="subject-star" title="Subject">★</span>}{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
             <span>
               {isHost && game.status === "lobby" && p.role === "guest" && (
                 <button className="small" onClick={() => selectSubject(p.id)} disabled={busySubjectId !== null}>{busySubjectId === p.id ? "Picking…" : "Make subject"}</button>

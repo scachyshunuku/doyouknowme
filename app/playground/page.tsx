@@ -139,7 +139,7 @@ export default function Playground() {
           <p>Package: Test Package (Test) · Subject: {subjectName || "Alex"} · You: Sam (host)</p>
           {players.map((p) => (
             <div className="row player-row" key={p.id}>
-              <span>{p.name}{p.role === "host" && <span className="tag">host</span>}{p.role === "subject" && <span className="subject-star" title="Subject">★</span>}</span>
+              <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.role === "subject" && <span className="subject-star" title="Subject">★</span>}</span>
               {p.role === "guest" && <button className="small" onClick={() => setSubjectId(p.id)}>Make subject</button>}
             </div>
           ))}
@@ -148,7 +148,7 @@ export default function Playground() {
       )}
 
       {view === "host" && (
-        <div className="game-layout">
+        <div className="game-layout with-leaderboard">
           <div className="game-main">
             <div className="card">
               <h2>Question {qIndex + 1} of {QUESTIONS.length}</h2>
@@ -200,7 +200,7 @@ export default function Playground() {
       )}
 
       {view === "results" && (
-        <div className="game-layout">
+        <div className="game-layout with-leaderboard">
           <div className="game-main">
             <div className="card">
               <h2>Results — Question {qIndex + 1}</h2>
