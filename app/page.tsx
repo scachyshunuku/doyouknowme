@@ -81,7 +81,7 @@ export default function Home() {
     const cleanCode = code.trim().toUpperCase();
     const { data: game, error: gameErr } = await sb.from("games").select("*").eq("code", cleanCode).single();
     if (gameErr || !game) { setBusy(false); return setError("Game not found. Check the code."); }
-    // Everyone joins as a guest. The host picks the subject in the lobby.
+    // Everyone joins as a guest. The host picks the star in the lobby.
     const { data: player, error: playerErr } = await sb
       .from("players")
       .insert({ game_id: game.id, name: name.trim(), role: "guest" })
@@ -95,15 +95,15 @@ export default function Home() {
   return (
     <main>
       <h1>Do You Know Me?</h1>
-      <p>A party game. The host starts a game and picks a question package, picks the subject in the lobby, and guests try to pick what the subject would pick.</p>
+      <p>A party game. The host starts a game and picks a question package, picks the star in the lobby, and guests try to pick what the star would pick.</p>
       {!isSupabaseConfigured() && <div className="error">Supabase is not configured in this deployment. Set the Vercel env vars in the README before playing.</div>}
       <div className="tabs" role="tablist" aria-label="Start or join a game">
-        <button role="tab" id="tab-create" aria-selected={mode === "create"} aria-controls="panel-create" className={mode === "create" ? "tab active" : "tab"} onClick={() => setMode("create")}>Start a game</button>
+        <button role="tab" id="tab-create" aria-selected={mode === "create"} aria-controls="panel-create" className={mode === "create" ? "tab active" : "tab"} onClick={() => setMode("create")}>Host a game</button>
         <button role="tab" id="tab-join" aria-selected={mode === "join"} aria-controls="panel-join" className={mode === "join" ? "tab active" : "tab"} onClick={() => setMode("join")}>Join a game</button>
       </div>
       {mode === "create" ? (
         <div className="card" role="tabpanel" id="panel-create" aria-labelledby="tab-create">
-          <h2>Start a game (you are the host)</h2>
+          <h2>Host a game</h2>
           <label>Your name (host)</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" />
           <label>Question package</label>
@@ -120,7 +120,6 @@ export default function Home() {
               ))}
             </select>
           )}
-          <p>You pick the subject in the lobby, from the guests who join. There is only one subject per game.</p>
           <button onClick={createGame} disabled={busy || packagesLoading}>{busy ? "Starting…" : "Start game"}</button>
         </div>
       ) : (
@@ -130,7 +129,6 @@ export default function Home() {
           <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. ABC123" maxLength={6} />
           <label>Your name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sam" />
-          <p>You join as a guest. The host picks one guest to be the subject in the lobby.</p>
           <button onClick={joinGame} disabled={busy}>{busy ? "Joining…" : "Join game"}</button>
         </div>
       )}
@@ -140,10 +138,10 @@ export default function Home() {
         <h2>How it works</h2>
         <ol className="steps">
           <li><strong>Host starts a game</strong> and picks a question package.</li>
-          <li><strong>Guests join with the code.</strong> The host picks one guest as the subject.</li>
-          <li><strong>Everyone except the host answers</strong>, including the subject. After answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results.</li>
-          <li><strong>Results:</strong> match the subject +2, match the majority +1, max 3 per question. Subject scores 0. Players who did not answer get 0 and do not count as a vote.</li>
-          <li><strong>Host hits Next Question</strong> until the end, then the leaderboard shows total points and most subject matches.</li>
+          <li><strong>Guests join with the code.</strong> The host picks one guest as the star.</li>
+          <li><strong>Everyone except the host answers</strong>, including the star. After answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results.</li>
+          <li><strong>Results:</strong> match the star +2, match the majority +1, max 3 per question. Players who did not answer get 0 and do not count as a vote.</li>
+          <li><strong>The game ends after all questions are answered.</strong> Highest scorer wins.</li>
         </ol>
       </div>
     </main>

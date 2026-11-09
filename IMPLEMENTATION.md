@@ -223,3 +223,14 @@ Mobile-first for guests/subject, TV/laptop for the host. One token set in `app/g
 - **Blockers**: None
 - **Testability**: Manual live test, with screenshots of Question, Results, and Final
 - **Status**: Done Nov 7. Live-tested, tie rule confirmed, no code change needed — `lib/scoring.ts` already implements it.
+
+### Task 6.3: "Subject" renamed "Star" + home/join copy stripped (Nov 8, evening)
+
+- [x] The word players see is now **Star**, not "subject": home intro, Host/Join panels, lobby ("Make star" button, "Waiting for the host to pick a star…"), Results ("— name's pick"), "Matches with {name}". The database role value, the `{subject}` template variable in seeded questions, and code identifiers (`subjectPlayer`, `subjectMatches`, …) stay as-is — display only.
+- [x] Home: the tab and panel are now **Host a game** (was "Start a game (you are the host)"); the "You pick the subject in the lobby…" paragraph is gone from the host panel.
+- [x] Join: the "You join as a guest. The host picks one guest to be the subject in the lobby." line is gone from both the home Join panel and the game-page join card.
+- [x] Game-page join card no longer shows the package — just "N players in the lobby." (the now-unused `gamePackage` state/fetch was removed). Same in the playground lobby meta line ("Star: Alex · You: Sam (host)").
+- [x] How it works, simplified: Results line drops "Subject scores 0" (star/host scoring 0 is a rule, not intro copy); the last step is now "The game ends after all questions are answered. Highest scorer wins." instead of describing the host hitting Next.
+- [x] Host lobby: the "Julie is the star — hit Start when everyone's here." line is gone — the lobby card is just the heading and the Start button.
+- [x] RULES.md renamed throughout (display word only; `{subject}` template variable documented as inserting the star's name).
+- **Status**: Done Nov 8, pending deploy verification

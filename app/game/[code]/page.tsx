@@ -6,7 +6,7 @@ import { computeRoundResult, computeTotals } from "../../../lib/scoring";
 import { renderQuestionText } from "../../../lib/template";
 import { matchesLabel, pointsLabel } from "../../../lib/format";
 import { sessionKey } from "../../../lib/types";
-import type { Answer, Game, Player, Question, QuestionPackage } from "../../../lib/types";
+import type { Answer, Game, Player, Question } from "../../../lib/types";
 
 export default function GamePage() {
   const params = useParams();
@@ -15,7 +15,6 @@ export default function GamePage() {
   const searchParams = useSearchParams();
   const joinParam = searchParams.get("join") === "1";
   const [game, setGame] = useState<Game | null>(null);
-  const [gamePackage, setGamePackage] = useState<QuestionPackage | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -40,10 +39,6 @@ export default function GamePage() {
     if (!gameData) { setError("Game not found."); setLoaded(true); return; }
     const g = gameData as Game;
     setGame(g);
-    if (g.question_package_id) {
-      const { data: pkgData } = await sb.from("question_packages").select("*").eq("id", g.question_package_id).single();
-      setGamePackage((pkgData as QuestionPackage) ?? null);
-    }
     const { data: playerData } = await sb.from("players").select("*").eq("game_id", g.id).order("joined_at");
     setPlayers((playerData as Player[]) ?? []);
     const { data: gqData } = await sb.from("game_questions").select("question_id, order_index").eq("game_id", g.id).order("order_index");
@@ -167,7 +162,7 @@ export default function GamePage() {
     if (!sb || !game || !isHost || game.status !== "lobby") return;
     setBusySubjectId(playerId); setError("");
     const chosen = players.find((p) => p.id === playerId);
-    if (!chosen || chosen.role === "host") { setBusySubjectId(null); return setError("Pick a guest to be the subject."); }
+    if (!chosen || chosen.role === "host") { setBusySubjectId(null); return setError("Pick a guest to be the star."); }
     // Demote the old subject first (the partial unique index allows only one),
     // then promote the chosen guest, then point the game at them.
     const { error: demoteErr } = await sb.from("players").update({ role: "guest" }).eq("game_id", game.id).eq("role", "subject");
@@ -280,10 +275,9 @@ export default function GamePage() {
             </>
           ) : (
             <>
-              <p>{gamePackage ? `Package: ${gamePackage.name}${gamePackage.category ? ` (${gamePackage.category})` : ""}` : "A game is waiting for you."} · {players.length} player{players.length === 1 ? "" : "s"} in the lobby.</p>
+              <p>{players.length} player{players.length === 1 ? "" : "s"} in the lobby.</p>
               <label>Your name</label>
               <input value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Sam" />
-              <p>You join as a guest. The host picks one guest to be the subject in the lobby.</p>
               {joinError && <div className="error">{joinError}</div>}
               <button onClick={joinGame} disabled={joinBusy || !joinName.trim()}>{joinBusy ? "Joining…" : "Join game"}</button>
             </>
@@ -297,10 +291,10 @@ export default function GamePage() {
         <h2>Players ({players.length})</h2>
         {players.map((p) => (
           <div className="row player-row" key={p.id}>
-            <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.id === game.subject_player_id && <span className="subject-star" title="Subject">★</span>}{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
+            <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.id === game.subject_player_id && <span className="subject-star" title="Star">★</span>}{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
             <span>
               {isHost && game.status === "lobby" && p.role === "guest" && (
-                <button className="small" onClick={() => selectSubject(p.id)} disabled={busySubjectId !== null}>{busySubjectId === p.id ? "Picking…" : "Make subject"}</button>
+                <button className="small" onClick={() => selectSubject(p.id)} disabled={busySubjectId !== null}>{busySubjectId === p.id ? "Picking…" : "Make star"}</button>
               )}
             </span>
           </div>
@@ -313,12 +307,9 @@ export default function GamePage() {
         <div className="card">
           <h2>Lobby</h2>
           {isHost ? (
-            <>
-              <p>{game.subject_player_id ? `${subjectPlayer?.name ?? "Subject"} is the subject — hit Start when everyone's here.` : "Pick one guest to be the subject, then start. The game cannot start until a subject is picked."}</p>
-              <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2}>{busyStart ? "Starting…" : "Start game"}</button></div>
-            </>
+            <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2}>{busyStart ? "Starting…" : "Start game"}</button></div>
           ) : (
-            <p>{game.subject_player_id ? "Waiting for the host to start…" : "Waiting for the host to pick a subject and start…"}</p>
+            <p>{game.subject_player_id ? "Waiting for the host to start…" : "Waiting for the host to pick a star and start…"}</p>
           )}
         </div>
       )}
@@ -366,7 +357,7 @@ export default function GamePage() {
             const isSubjectPick = round.subjectOption === i;
             return (
               <div key={i} className={`result-option${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
-                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "subject"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "star"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );
@@ -400,7 +391,7 @@ export default function GamePage() {
           </table>
         </div>
         <div className="card">
-          <h2>Matches with {subjectPlayer?.name ?? "the subject"}</h2>
+          <h2>Matches with {subjectPlayer?.name ?? "the star"}</h2>
           <table className="leaderboard-table">
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>

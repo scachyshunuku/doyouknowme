@@ -6,7 +6,7 @@ import { matchesLabel, pointsLabel } from "../../lib/format";
 import type { Answer, Player, Question } from "../../lib/types";
 
 // Design playground: preview every view with mock data, no Supabase, no real
-// game. Pick a view, a frame size, and a subject name, then click around to
+// game. Pick a view, a frame size, and a star name, then click around to
 // give design feedback. Nothing here writes to the database.
 
 const QUESTIONS: Question[] = [
@@ -17,11 +17,11 @@ const QUESTIONS: Question[] = [
   { id: "q5", text: "What is {subject}'s favourite season?", options: ["Spring", "Summer", "Autumn", "Winter"], created_at: "" },
 ];
 
-// Mock answers per question: [subject, guest1, guest2] option indexes.
-// Q2 is deliberate: the guests agree on Dog (2 votes) while the subject
+// Mock answers per question: [star, guest1, guest2] option indexes.
+// Q2 is deliberate: the guests agree on Dog (2 votes) while the star
 // picked Cat, so the Results view shows the yellow top-pick highlight and
-// the gold subject-pick star on DIFFERENT options. The other questions
-// keep the top choice equal to the subject's pick, so both cases are
+// the gold star-pick star on DIFFERENT options. The other questions
+// keep the top choice equal to the star's pick, so both cases are
 // previewable in the playground.
 const MOCK_PICKS: number[][] = [
   [1, 1, 0],
@@ -37,7 +37,7 @@ const VIEW_LABELS: [View, string][] = [
   ["lobby", "Lobby"],
   ["host", "Host (TV)"],
   ["guest", "Guest (phone)"],
-  ["subject", "Subject (phone)"],
+  ["subject", "Star (phone)"],
   ["results", "Results"],
   ["final", "Final leaderboard"],
 ];
@@ -47,7 +47,7 @@ export default function Playground() {
   const [frame, setFrame] = useState<"tv" | "phone">("tv");
   const [names, setNames] = useState<Record<string, string>>({ host: "Sam", p2: "Alex", g1: "Guest1", g2: "Guest2" });
   const [subjectId, setSubjectId] = useState("p2");
-  // The subject-name input edits the current subject's name only.
+  // The star-name input edits the current star's name only.
   const subjectName = names[subjectId] ?? "Alex";
   const [copied, setCopied] = useState(false);
   const [qIndex, setQIndex] = useState(0);
@@ -102,10 +102,10 @@ export default function Playground() {
   return (
     <main className={isTv ? "tv" : "mobile"}>
       <h1>Playground</h1>
-      <p>Mock views of the game — no real game, nothing is saved. Pick a view and a frame, change the subject name, and click around.</p>
+      <p>Mock views of the game — no real game, nothing is saved. Pick a view and a frame, change the star name, and click around.</p>
 
       <div className="card">
-        <label>Subject name</label>
+        <label>Star name</label>
         <input value={subjectName} onChange={(e) => setNames((n) => ({ ...n, [subjectId]: e.target.value }))} placeholder="e.g. Alex" />
         <label>Question</label>
         <select value={qIndex} onChange={(e) => { setQIndex(Number(e.target.value)); setGuestPicked(null); }}>
@@ -138,11 +138,11 @@ export default function Playground() {
             <div className="code">MOCK01</div>
             <button className="small secondary" onClick={() => { setCopied(true); window.setTimeout(() => setCopied(false), 2000); }}>{copied ? "Copied ✓" : "Copy invite link"}</button>
           </div>
-          <p>Package: Test Package (Test) · Subject: {subjectName || "Alex"} · You: Sam (host)</p>
+          <p>Star: {subjectName || "Alex"} · You: Sam (host)</p>
           {players.map((p) => (
             <div className="row player-row" key={p.id}>
-              <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.role === "subject" && <span className="subject-star" title="Subject">★</span>}</span>
-              {p.role === "guest" && <button className="small" onClick={() => setSubjectId(p.id)}>Make subject</button>}
+              <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.role === "subject" && <span className="subject-star" title="Star">★</span>}</span>
+              {p.role === "guest" && <button className="small" onClick={() => setSubjectId(p.id)}>Make star</button>}
             </div>
           ))}
           <div className="action-bar"><button onClick={() => { setQIndex(0); setGuestPicked(null); setView("host"); }}>Start game</button></div>

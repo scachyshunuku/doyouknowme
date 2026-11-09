@@ -40,13 +40,13 @@ button.small.active { background: var(--gold); color: #111; }
 .bar { height: 12px; background: #2c3152; border-radius: 999px; overflow: hidden; margin: 6px 0 12px; }
 .bar > div { height: 100%; background: #6c5ce7; }
 .row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #2c3152; }
-/* Lobby player rows: every row exactly the same height. The Make-subject
+/* Lobby player rows: every row exactly the same height. The Make-star
    button is 44px tall, so a plain min-height lets button rows grow taller
    than the rest — the button's margin is removed here and the row height
    is set to fit the button (44px) plus the padding, so all rows match. */
 .player-row { min-height: 72px; padding: 14px 0; align-items: center; }
 .player-row button.small { margin: 0; }
-/* The subject is marked with a gold star, not a tag. */
+/* The star is marked with a gold star, not a tag. */
 .subject-star { color: var(--gold); font-size: 18px; margin-left: 8px; }
 .row:last-child { border-bottom: 0; }
 .question-text { font-size: 20px; color: #fff; }
@@ -80,12 +80,12 @@ main.tv { max-width: 1180px; }
 .player-name .subject-star { margin-left: 0; }
 
 /* Results: the top-voted option(s) get a gold border with a gold tint —
-   nothing more. The subject's pick gets NO highlight at all: the star and
+   nothing more. The star's pick gets NO highlight at all: the star and
    the "— name's pick" text are the only marker. */
 .result-option.top-pick { background: rgba(245, 197, 66, 0.16); border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px; margin: 4px -10px; }
 .result-option.top-pick .row { border-bottom: 0; }
 
-/* Guest / subject phones: big tap targets, roomy text. */
+/* Guest / star phones: big tap targets, roomy text. */
 @media (max-width: 640px) {
   main { padding: 16px 12px calc(48px + env(safe-area-inset-bottom)); }
   .code { font-size: 28px; letter-spacing: 4px; }
@@ -125,7 +125,7 @@ main.tv { max-width: 1180px; }
 .steps li::before { content: counter(step); position: absolute; left: 0; top: 10px; width: 30px; height: 30px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; }
 .steps li strong { color: var(--text); }
 
-/* Final leaderboard: two real tables, one ranked by points, one by subject
+/* Final leaderboard: two real tables, one ranked by points, one by star
    matches. Uniform cell padding keeps every row the same height. */
 .leaderboard-table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
 .leaderboard-table th, .leaderboard-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border); }
