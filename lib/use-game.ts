@@ -10,21 +10,21 @@ import { loadPackagesWithCounts } from "./packages";
 import { leaderboardPlayers, sortByMatches, sortByPoints, sortByPointsThenMatches } from "./leaderboard";
 import { computeRoundResult, computeTotals } from "./scoring";
 import { renderQuestionText } from "./template";
-import { shuffledOptions } from "./shuffle";
+import { shuffleArray, shuffledOptions } from "./shuffle";
 import {
   emptyCustomQuestion,
   insertCustomQuestion,
   isCustomQuestionComplete,
 } from "./custom-questions";
 import { sessionKey } from "./types";
-import type { Answer, Game, Player, Question } from "./types";
+import type { Answer, Game, GameQuestion, Player } from "./types";
 import type { CustomQuestionInput } from "./custom-questions";
 
 export interface GameState {
   code: string;
   game: Game | null;
   players: Player[];
-  questions: Question[];
+  questions: GameQuestion[];
   answers: Answer[];
   myPlayerId: string | null;
   me: Player | null;
@@ -54,7 +54,7 @@ export interface GameState {
   questionsRequired: boolean;
   effectiveLimit: number;
   showJoin: boolean;
-  currentQuestion: Question | null;
+  currentQuestion: GameQuestion | null;
   currentAnswers: Answer[];
   nonHostPlayers: Player[];
   submittedIds: Set<string>;
@@ -103,7 +103,7 @@ export function useGame(code: string): GameState {
   const joinParam = searchParams.get("join") === "1";
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<GameQuestion[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -154,23 +154,19 @@ export function useGame(code: string): GameState {
     const g = gameData as Game;
     setGame(g);
     // The three game-scoped reads are independent — fetch them together.
+    // The game's questions come from game_questions alone: each row is a
+    // self-contained copy (text + options), so the questions bank is never
+    // read while playing.
     const [{ data: playerData }, { data: gqData }, { data: ansData }] = await Promise.all([
       sb.from("players").select("*").eq("game_id", g.id).order("joined_at"),
-      sb.from("game_questions").select("question_id, order_index, skipped").eq("game_id", g.id).order("order_index"),
+      sb.from("game_questions").select("*").eq("game_id", g.id).order("order_index"),
       sb.from("answers").select("*").eq("game_id", g.id),
     ]);
     setPlayers((playerData as Player[]) ?? []);
     sessionVerifiedRef.current = true;
-    const gqRows = (gqData as { question_id: string; skipped?: boolean }[]) ?? [];
-    setSkippedIds(new Set(gqRows.filter((r) => r.skipped).map((r) => r.question_id)));
-    const qids = gqRows.map((x) => x.question_id);
-    if (qids.length > 0) {
-      const { data: qData } = await sb.from("questions").select("*").in("id", qids);
-      const byId = new Map(((qData as Question[]) ?? []).map((q) => [q.id, q]));
-      setQuestions(qids.map((id) => byId.get(id)).filter((q): q is Question => Boolean(q)));
-    } else {
-      setQuestions([]);
-    }
+    const gqRows = (gqData as GameQuestion[]) ?? [];
+    setQuestions(gqRows);
+    setSkippedIds(new Set(gqRows.filter((r) => r.skipped).map((r) => r.id)));
     setAnswers((ansData as Answer[]) ?? []);
     setLoaded(true);
   }, [code]);
@@ -265,7 +261,7 @@ export function useGame(code: string): GameState {
   // refreshes (no param) resume silently.
   const showJoin = loaded && !!game && (!me || joinParam);
   const currentQuestion = game && questions.length > 0 ? questions[Math.min(game.current_question_index, questions.length - 1)] : null;
-  const currentAnswers = currentQuestion ? answers.filter((a) => a.question_id === currentQuestion.id) : [];
+  const currentAnswers = currentQuestion ? answers.filter((a) => a.game_question_id === currentQuestion.id) : [];
   const nonHostPlayers = players.filter((p) => p.role !== "host");
   const submittedIds = new Set(currentAnswers.map((a) => a.player_id));
   const allSubmitted = nonHostPlayers.length > 0 && nonHostPlayers.every((p) => submittedIds.has(p.id));
@@ -373,21 +369,25 @@ export function useGame(code: string): GameState {
       setBusyStart(false);
       return setError("Pick a question package, or allow at least 1 custom question per guest.");
     }
-    // Copy the package's questions, in defined order, into game_questions —
-    // only the ones not already there.
+    // Copy the package's questions into game_questions as self-contained
+    // rows (text + options copied in, marked bank), shuffled once — the
+    // bank's defined order is only the seed list, the game plays them in
+    // this shuffled order. Only copy when the game has no questions yet
+    // (a game back in the lobby has none; this also makes a double-Start
+    // harmless).
     if (packageId) {
     const { data: pqData, error: pqErr } = await sb
       .from("package_questions")
-      .select("question_id, order_index")
-      .eq("question_package_id", packageId)
-      .order("order_index");
+      .select("question_id")
+      .eq("question_package_id", packageId);
     if (pqErr || !pqData || pqData.length === 0) { setBusyStart(false); return setError("This question package has no questions. Seed it in Supabase first."); }
-    const { data: existing } = await sb.from("game_questions").select("question_id").eq("game_id", game.id);
-    const existingIds = new Set(((existing as { question_id: string }[]) ?? []).map((r) => r.question_id));
-    const rows = (pqData as { question_id: string; order_index: number }[])
-      .filter((r) => !existingIds.has(r.question_id))
-      .map((r) => ({ game_id: game.id, question_id: r.question_id, order_index: r.order_index }));
-    if (rows.length > 0) {
+    const { data: existing } = await sb.from("game_questions").select("id").eq("game_id", game.id).limit(1);
+    if (!existing || existing.length === 0) {
+      const qids = (pqData as { question_id: string }[]).map((r) => r.question_id);
+      const { data: bank, error: bankErr } = await sb.from("questions").select("text, options").in("id", qids);
+      if (bankErr || !bank) { setBusyStart(false); return setError(bankErr?.message ?? "Could not load the question package."); }
+      const rows = shuffleArray(bank as { text: string; options: string[] }[])
+        .map((q, i) => ({ game_id: game.id, text: q.text, options: q.options, order_index: i, is_custom: false }));
       const { error: gqErr } = await sb.from("game_questions").insert(rows);
       if (gqErr) { setBusyStart(false); return setError(gqErr.message); }
     }
@@ -498,10 +498,10 @@ export function useGame(code: string): GameState {
       return setContribError("The host already started the game.");
     }
     // The per-guest limit is enforced here too, not just in the wizard UI:
-    // count this player's own custom questions (recorded by author) and
-    // refuse another one past the limit.
-    const { data: mine } = await sb.from("game_questions").select("question_id").eq("game_id", game.id).eq("created_by_player_id", me.id);
-    if ((((mine as { question_id: string }[]) ?? []).length) >= effectiveLimit) {
+    // count this player's own custom questions (marked is_custom, recorded
+    // by author) and refuse another one past the limit.
+    const { data: mine } = await sb.from("game_questions").select("id").eq("game_id", game.id).eq("is_custom", true).eq("created_by_player_id", me.id);
+    if ((((mine as { id: string }[]) ?? []).length) >= effectiveLimit) {
       setContribBusy(false);
       return setContribError("You have already added all of your questions.");
     }
@@ -559,7 +559,7 @@ export function useGame(code: string): GameState {
       setPendingPick(null);
       return setError("That question is already over.");
     }
-    const { error: e } = await sb.from("answers").insert({ game_id: game.id, question_id: currentQuestion.id, player_id: me.id, option_index: optionIndex });
+    const { error: e } = await sb.from("answers").insert({ game_id: game.id, game_question_id: currentQuestion.id, player_id: me.id, option_index: optionIndex });
     if (e) { setPendingPick(null); setError(e.message); } else await load();
   }
 
@@ -655,7 +655,7 @@ export function useGame(code: string): GameState {
     // Next Question — the skipped question stays in the list, so the total
     // question count never drops, and it shows in the Answer review marked
     // Skipped with +0 pts.
-    const { error } = await sb.from("game_questions").update({ skipped: true }).eq("game_id", game.id).eq("question_id", currentQuestion.id);
+    const { error } = await sb.from("game_questions").update({ skipped: true }).eq("id", currentQuestion.id);
     if (error) return setError(error.message);
     if (game.current_question_index + 1 >= questions.length) {
       await sb.from("games").update({ status: "finished" }).eq("id", game.id).eq("status", "question");

@@ -7,14 +7,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * finish_contribution RPC), and their options shuffle per game like every
  * other question.
  *
- * Storage: one row in `questions` (text + 4 options) and one row in
- * `game_questions`, with the author recorded (created_by_player_id) so the
- * per-guest limit is checkable. Custom rows live at order_index >=
- * CUSTOM_ORDER_START, so they always sort after the bank (bank positions
- * are 0..N-1) and never collide with the package copy at Start.
+ * Storage: one row in `game_questions` only — the full question (text +
+ * 4 options) is copied in and marked is_custom, with the author recorded
+ * (created_by_player_id) so the per-guest limit is checkable. The shared
+ * `questions` bank is never touched: a custom question belongs to this
+ * game and no other. Its order_index is the next slot after the bank
+ * (bank positions are 0..N-1), so customs always sort after the bank.
  */
-
-export const CUSTOM_ORDER_START = 1000;
 
 export const MAX_CUSTOM_QUESTION_LENGTH = 140;
 export const MAX_CUSTOM_CHOICE_LENGTH = 50;
@@ -42,10 +41,10 @@ export function cleanCustomQuestion(cq: CustomQuestionInput): CustomQuestionInpu
 
 /**
  * Save a guest's custom question for a game. Returns an error message, or
- * null on success. Inserts the question row first, then the game_questions
- * row at the next free custom slot (max custom order_index + 1, starting
- * at CUSTOM_ORDER_START). Retries once if two joins race on the same slot
- * (the (game_id, order_index) primary key rejects the loser).
+ * null on success. Inserts the full question into `game_questions` at the
+ * next free slot after the bank (max order_index + 1). Retries once if two
+ * guests race on the same slot (the (game_id, order_index) unique
+ * constraint rejects the loser).
  */
 export async function insertCustomQuestion(
   sb: SupabaseClient,
@@ -54,27 +53,20 @@ export async function insertCustomQuestion(
   authorId: string,
 ): Promise<string | null> {
   const clean = cleanCustomQuestion(cq);
-  const { data: question, error: qErr } = await sb
-    .from("questions")
-    .insert({ text: clean.question, options: clean.choices })
-    .select("id")
-    .single();
-  if (qErr || !question) return qErr?.message ?? "Could not save your question.";
   for (let attempt = 0; attempt < 2; attempt++) {
     const { data: maxRows } = await sb
       .from("game_questions")
       .select("order_index")
       .eq("game_id", gameId)
-      .gte("order_index", CUSTOM_ORDER_START)
       .order("order_index", { ascending: false })
       .limit(1);
-    const nextIndex = (maxRows?.[0]?.order_index ?? CUSTOM_ORDER_START - 1) + 1;
+    const nextIndex = (maxRows?.[0]?.order_index ?? -1) + 1;
     const { error: gqErr } = await sb
       .from("game_questions")
-      .insert({ game_id: gameId, question_id: (question as { id: string }).id, order_index: nextIndex, created_by_player_id: authorId });
+      .insert({ game_id: gameId, text: clean.question, options: clean.choices, order_index: nextIndex, is_custom: true, created_by_player_id: authorId });
     if (!gqErr) return null;
     if (gqErr.code !== "23505" || attempt === 1) return gqErr.message;
-    // Another join took this slot — re-read the max and try again.
+    // Another guest took this slot — re-read the max and try again.
   }
   return "Could not save your question.";
 }

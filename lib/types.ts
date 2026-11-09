@@ -47,19 +47,33 @@ export interface Question {
   created_at: string;
 }
 
+// A question as it plays in one game: a self-contained copy of the bank
+// question (bank) or a guest's own question (custom). The game never reads
+// the questions bank while playing — everything comes from these rows.
 export interface GameQuestion {
+  id: string;
   game_id: string;
-  question_id: string;
+  text: string;
+  options: string[];
   order_index: number;
+  // True for a guest's own question (added in the contribution phase).
+  // Bank copies are false. Customs play after the bank, shuffled once
+  // when the contribution phase ends.
+  is_custom: boolean;
   // True when the host skipped this question: it scores no points, never
   // reaches Results, but stays in the question count.
   skipped: boolean;
+  // The guest who added this question (customs only); used to enforce the
+  // per-guest limit. Null for bank copies.
+  created_by_player_id: string | null;
 }
 
 export interface Answer {
   id: string;
   game_id: string;
-  question_id: string;
+  // The game question this answer is for (a game_questions row, not the
+  // bank question — custom questions have no bank row).
+  game_question_id: string;
   player_id: string;
   option_index: number;
   created_at: string;

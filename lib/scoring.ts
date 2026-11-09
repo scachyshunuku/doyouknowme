@@ -81,7 +81,7 @@ export function computeTotals(
   allAnswers: Answer[],
   players: Player[],
   subjectPlayerId: string | null,
-  questionIds: string[],
+  gameQuestionIds: string[],
 ): Totals {
   const totalPoints: Record<string, number> = {};
   const subjectMatches: Record<string, number> = {};
@@ -89,9 +89,9 @@ export function computeTotals(
     totalPoints[p.id] = 0;
     subjectMatches[p.id] = 0;
   }
-  for (const qid of questionIds) {
+  for (const qid of gameQuestionIds) {
     const round = computeRoundResult(
-      allAnswers.filter((a) => a.question_id === qid),
+      allAnswers.filter((a) => a.game_question_id === qid),
       players,
       subjectPlayerId,
     );

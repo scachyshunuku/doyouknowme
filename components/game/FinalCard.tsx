@@ -40,7 +40,7 @@ export default function FinalCard({ g }: { g: GameState }) {
         <div className="card">
           <h2>Answer review</h2>
           {questions.map((q, qi) => {
-            const qAnswers = answers.filter((a) => a.question_id === q.id);
+            const qAnswers = answers.filter((a) => a.game_question_id === q.id);
             const qRound = computeRoundResult(qAnswers, players, game?.subject_player_id ?? null);
             const qOptions = shuffledOptions(q.options, game.id, q.id);
             const starAnswer = qAnswers.find((a) => a.player_id === game.subject_player_id);

@@ -42,6 +42,19 @@ export function seededShuffle<T>(items: readonly T[], seed: string): T[] {
   return out;
 }
 
+/** A shuffled copy of `items`, in a fresh random order. Used once, when the
+ *  host copies a package's questions into a game at Start — the host is the
+ *  only client doing the copy, so every client reads the same stored order
+ *  afterwards and no seed is needed. */
+export function shuffleArray<T>(items: readonly T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 /** The option order a question is shown in for one game. */
 export function shuffledOptions(options: readonly string[], gameId: string, questionId: string): string[] {
   return seededShuffle(options, `${gameId}:${questionId}`);

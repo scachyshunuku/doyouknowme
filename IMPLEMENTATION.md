@@ -358,4 +358,4 @@ William: "Question package doesn't need category."
 - [x] `supabase/seed_packages.sql`: the two package inserts no longer pass a category, so the seed stays runnable.
 - [x] Docs: RULES.md, ARCHITECTURE.md, AGENTS.md no longer say "category optional" — a package is a named list of questions, name required.
 - [x] Verified: `npm run build` passes.
-- **Status**: NOT pushed yet — code + migration are ready; push + live verification pending.
+- **Status**: PUSHED Nov 9 ~09:15 as commit `2d8477d` and VERIFIED LIVE (home chunk page-263a6b5382505da7.js has 0 "category" references; migration 0009 already live).

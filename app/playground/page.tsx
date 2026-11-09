@@ -7,18 +7,18 @@ import { matchesLabel, pointsLabel } from "../../lib/format";
 import { leaderboardPlayers, sortByMatches, sortByPoints } from "../../lib/leaderboard";
 import CustomQuestionForm from "../../components/CustomQuestionForm";
 import { emptyCustomQuestion } from "../../lib/custom-questions";
-import type { Answer, Player, Question } from "../../lib/types";
+import type { Answer, GameQuestion, Player } from "../../lib/types";
 
 // Design playground: preview every view with mock data, no Supabase, no real
 // game. Pick a view, a frame size, and a star name, then click around to
 // give design feedback. Nothing here writes to the database.
 
-const QUESTIONS: Question[] = [
-  { id: "q1", text: "What is {subject}'s favourite colour?", options: ["Red", "Blue", "Green", "Yellow"], created_at: "" },
-  { id: "q2", text: "What is {subject}'s favourite animal?", options: ["Dog", "Cat", "Penguin", "Owl"], created_at: "" },
-  { id: "q3", text: "What is {subject}'s ideal test day?", options: ["Beach", "Mountains", "City", "Staying home"], created_at: "" },
-  { id: "q4", text: "What snack would {subject} pick?", options: ["Chips", "Popcorn", "Fruit", "Chocolate"], created_at: "" },
-  { id: "q5", text: "What is {subject}'s favourite season?", options: ["Spring", "Summer", "Autumn", "Winter"], created_at: "" },
+const QUESTIONS: GameQuestion[] = [
+  { id: "q1", game_id: "mock", text: "What is {subject}'s favourite colour?", options: ["Red", "Blue", "Green", "Yellow"], order_index: 0, is_custom: false, skipped: false, created_by_player_id: null },
+  { id: "q2", game_id: "mock", text: "What is {subject}'s favourite animal?", options: ["Dog", "Cat", "Penguin", "Owl"], order_index: 1, is_custom: false, skipped: false, created_by_player_id: null },
+  { id: "q3", game_id: "mock", text: "What is {subject}'s ideal test day?", options: ["Beach", "Mountains", "City", "Staying home"], order_index: 2, is_custom: false, skipped: false, created_by_player_id: null },
+  { id: "q4", game_id: "mock", text: "What snack would {subject} pick?", options: ["Chips", "Popcorn", "Fruit", "Chocolate"], order_index: 3, is_custom: false, skipped: false, created_by_player_id: null },
+  { id: "q5", game_id: "mock", text: "What is {subject}'s favourite season?", options: ["Spring", "Summer", "Autumn", "Winter"], order_index: 4, is_custom: false, skipped: false, created_by_player_id: null },
 ];
 
 // Mock answers per question: [star, guest1, guest2] option indexes.
@@ -95,17 +95,17 @@ export default function Playground() {
     for (let qi = 0; qi <= qIndex; qi++) {
       const picks = MOCK_PICKS[qi];
       (["p2", "g1", "g2"] as const).forEach((pid, i) => {
-        out.push({ id: `${QUESTIONS[qi].id}-${pid}`, game_id: "mock", question_id: QUESTIONS[qi].id, player_id: pid, option_index: picks[i], created_at: "" });
+        out.push({ id: `${QUESTIONS[qi].id}-${pid}`, game_id: "mock", game_question_id: QUESTIONS[qi].id, player_id: pid, option_index: picks[i], created_at: "" });
       });
     }
     return out;
   }, [qIndex]);
 
   // Points for the current question stay hidden until its Results screen.
-  const countedAnswers = (view === "results" || view === "final" ? allAnswers : allAnswers.filter((a) => a.question_id !== question.id))
-    .filter((a) => !skippedIds.includes(a.question_id));
+  const countedAnswers = (view === "results" || view === "final" ? allAnswers : allAnswers.filter((a) => a.game_question_id !== question.id))
+    .filter((a) => !skippedIds.includes(a.game_question_id));
   const totals = computeTotals(countedAnswers, players, subjectId, QUESTIONS.filter((q) => !skippedIds.includes(q.id)).map((q) => q.id));
-  const currentAnswers = allAnswers.filter((a) => a.question_id === question.id);
+  const currentAnswers = allAnswers.filter((a) => a.game_question_id === question.id);
   const round = computeRoundResult(currentAnswers, players, subjectId);
   const sortedOptions = displayOptions
     .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
@@ -351,7 +351,7 @@ export default function Playground() {
         <div className="card">
           <h2>Answer review</h2>
           {QUESTIONS.map((q, qi) => {
-            const qAnswers = allAnswers.filter((a) => a.question_id === q.id);
+            const qAnswers = allAnswers.filter((a) => a.game_question_id === q.id);
             const qRound = computeRoundResult(qAnswers, players, subjectId);
             const qOptions = shuffledOptions(q.options, "playground", q.id);
             const starAnswer = qAnswers.find((a) => a.player_id === subjectId);
