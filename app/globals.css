@@ -70,7 +70,9 @@ main.tv { max-width: 1680px; }
 /* Running leaderboard: on the side on wide screens, stacked below on mobile.
    The score never wraps onto two lines. */
 .leaderboard-side .row span:last-child { white-space: nowrap; flex-shrink: 0; }
-.leaderboard-side .row span:first-child { min-width: 0; }
+/* Long names truncate with … instead of wrapping, so the score stays on the
+   same line for every row. */
+.leaderboard-side .row span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .game-layout { display: block; }
 @media (min-width: 900px) {
   /* Wide host view: question panel takes all remaining width, and both
@@ -116,8 +118,8 @@ main.tv { max-width: 1680px; }
 
 /* Sticky action bar: the host's one primary action stays in thumb reach
    at the bottom of the screen, above the phone's home indicator. */
-.action-bar { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom)); margin-top: 16px; }
-.action-bar button { margin-top: 0; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45); }
+.action-bar { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom)); margin-top: 16px; display: flex; gap: 10px; }
+.action-bar button { flex: 1; margin-top: 0; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45); }
 
 /* Tabs: the Start / Join switcher on the home page. Tabs sit directly above
    their panel and read as tabs, not as action buttons. */
@@ -135,13 +137,26 @@ main.tv { max-width: 1680px; }
 .steps li strong { color: var(--text); }
 
 /* Final leaderboard: two real tables, one ranked by points, one by star
-   matches. Uniform cell padding keeps every row the same height. */
-.leaderboard-table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
+   matches. Uniform cell padding keeps every row the same height. Fixed
+   layout with set column widths, so a long name truncates in its own column
+   instead of stretching the table or wrapping onto two lines. */
+.leaderboard-table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; table-layout: fixed; }
 .leaderboard-table th, .leaderboard-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border); }
 .leaderboard-table th { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .leaderboard-table tr:last-child td { border-bottom: 0; }
-.leaderboard-table td.num, .leaderboard-table th.num { text-align: right; white-space: nowrap; }
+.leaderboard-table td.num, .leaderboard-table th.num { text-align: right; white-space: nowrap; width: 80px; }
 .leaderboard-table td.rank, .leaderboard-table th.rank { width: 36px; }
+.leaderboard-table td.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Answer review on the final screen: one block per question, the star's
+   pick first, then each guest's pick with the points it earned. */
+.review-question { padding: 12px 0 4px; border-top: 1px solid var(--border); }
+.review-question:first-of-type { border-top: 0; padding-top: 0; }
+.review-question .question-text { margin: 0 0 4px; }
+
+/* Optional custom-question section on the join form. */
+.custom-question { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin: 12px 0; }
+.custom-question p { font-size: 14px; margin: 8px 0; }
 
 /* Code row: big code plus a copy button, so the host can share the invite
    link instead of reading the code aloud. */

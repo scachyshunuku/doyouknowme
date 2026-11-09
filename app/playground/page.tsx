@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { computeRoundResult, computeTotals } from "../../lib/scoring";
 import { renderQuestionText } from "../../lib/template";
+import { shuffledOptions } from "../../lib/shuffle";
 import { matchesLabel, pointsLabel } from "../../lib/format";
 import type { Answer, Player, Question } from "../../lib/types";
 
@@ -52,6 +53,8 @@ export default function Playground() {
   const [copied, setCopied] = useState(false);
   const [qIndex, setQIndex] = useState(0);
   const [guestPicked, setGuestPicked] = useState<number | null>(null);
+  // Mock skipped questions (host Skip): excluded from totals and the review.
+  const [skippedIds, setSkippedIds] = useState<string[]>([]);
 
   const players: Player[] = useMemo(
     () =>
@@ -67,6 +70,9 @@ export default function Playground() {
 
   const question = QUESTIONS[qIndex];
   const questionText = renderQuestionText(question.text, { subject: subjectName, host: "Sam" });
+  // Same shuffle as the real game (fixed "playground" game id, so the mock
+  // order is stable). Q2's mock picks still land on Dog/Cat in this order.
+  const displayOptions = shuffledOptions(question.options, "playground", question.id);
 
   // Mock answers for every question so far, for running totals.
   const allAnswers: Answer[] = useMemo(() => {
@@ -81,11 +87,12 @@ export default function Playground() {
   }, [qIndex]);
 
   // Points for the current question stay hidden until its Results screen.
-  const countedAnswers = view === "results" || view === "final" ? allAnswers : allAnswers.filter((a) => a.question_id !== question.id);
-  const totals = computeTotals(countedAnswers, players, subjectId, QUESTIONS.map((q) => q.id));
+  const countedAnswers = (view === "results" || view === "final" ? allAnswers : allAnswers.filter((a) => a.question_id !== question.id))
+    .filter((a) => !skippedIds.includes(a.question_id));
+  const totals = computeTotals(countedAnswers, players, subjectId, QUESTIONS.filter((q) => !skippedIds.includes(q.id)).map((q) => q.id));
   const currentAnswers = allAnswers.filter((a) => a.question_id === question.id);
   const round = computeRoundResult(currentAnswers, players, subjectId);
-  const sortedOptions = question.options
+  const sortedOptions = displayOptions
     .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
     .sort((a, b) => b.count - a.count || a.i - b.i);
   const maxCount = Math.max(...sortedOptions.map((o) => o.count));
@@ -106,7 +113,7 @@ export default function Playground() {
 
       <div className="card">
         <label>Star name</label>
-        <input value={subjectName} onChange={(e) => setNames((n) => ({ ...n, [subjectId]: e.target.value }))} placeholder="e.g. Alex" />
+        <input value={subjectName} onChange={(e) => setNames((n) => ({ ...n, [subjectId]: e.target.value }))} placeholder="e.g. Alex" maxLength={25} />
         <label>Question</label>
         <select value={qIndex} onChange={(e) => { setQIndex(Number(e.target.value)); setGuestPicked(null); }}>
           {QUESTIONS.map((q, i) => (
@@ -156,12 +163,12 @@ export default function Playground() {
               <h2>Question {qIndex + 1} of {QUESTIONS.length}</h2>
               <p className="question-text">{questionText}</p>
               <div className="host-options">
-                {question.options.map((opt, i) => (
+                {displayOptions.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
                 ))}
               </div>
               <p><span className="pill">2/3 answered</span></p>
-              <div className="action-bar"><button className="secondary" onClick={() => setView("results")}>Reveal results</button></div>
+              <div className="action-bar"><button className="secondary" onClick={() => setView("results")}>Reveal results</button><button className="secondary" onClick={() => { setSkippedIds((s) => [...s, question.id]); setGuestPicked(null); if (qIndex + 1 >= QUESTIONS.length) { setView("final"); } else { setQIndex(qIndex + 1); } }}>Skip question</button></div>
             </div>
           </div>
           <aside className="card leaderboard-side">
@@ -182,14 +189,14 @@ export default function Playground() {
           <p className="question-text">{questionText}</p>
           {guestPicked === null ? (
             <div className="options">
-              {question.options.map((opt, i) => (
+              {displayOptions.map((opt, i) => (
                 <button key={i} onClick={() => setGuestPicked(i)}>{opt}</button>
               ))}
             </div>
           ) : (
             <div>
               <h2>✓ Answer locked in</h2>
-              <div className="my-pick">You picked: {question.options[guestPicked]}</div>
+              <div className="my-pick">You picked: {displayOptions[guestPicked]}</div>
               <p>Waiting for everyone else…</p>
               <button className="secondary" onClick={() => setGuestPicked(null)}>Reset (playground only)</button>
             </div>
@@ -206,9 +213,14 @@ export default function Playground() {
               {sortedOptions.map(({ opt, i, count: total }) => {
                 const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
                 const isSubjectPick = round.subjectOption === i;
+                const isMyPick = guestPicked === i;
+                const pickNotes = [
+                  ...(isSubjectPick ? [`${subjectName || "Alex"}'s pick`] : []),
+                  ...(isMyPick ? ["your pick"] : []),
+                ];
                 return (
                   <div key={i} className={`result-option${total > 0 && total === maxCount ? " top-pick" : ""}`}>
-                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectName || "Alex"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
+                    <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
                     <div className="bar"><div style={{ width: `${pct}%` }} /></div>
                   </div>
                 );
@@ -243,7 +255,7 @@ export default function Playground() {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
             <tbody>
               {leaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td>{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -254,10 +266,37 @@ export default function Playground() {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>
               {matchesLeaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td>{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="card">
+          <h2>Answer review</h2>
+          {QUESTIONS.filter((q) => !skippedIds.includes(q.id)).map((q, qi) => {
+            const qAnswers = allAnswers.filter((a) => a.question_id === q.id);
+            const qRound = computeRoundResult(qAnswers, players, subjectId);
+            const qOptions = shuffledOptions(q.options, "playground", q.id);
+            const starAnswer = qAnswers.find((a) => a.player_id === subjectId);
+            const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
+            return (
+              <div className="review-question" key={q.id}>
+                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectName, host: "Sam" })}</p>
+                <div className="row"><span>★ {subjectName || "Alex"}: {starPick ?? "did not answer"}</span></div>
+                {guests.map((p) => {
+                  const a = qAnswers.find((x) => x.player_id === p.id);
+                  const pick = a ? qOptions[a.option_index] : null;
+                  const matchedStar = a !== undefined && qRound.subjectOption !== null && a.option_index === qRound.subjectOption;
+                  return (
+                    <div className="row" key={p.id}>
+                      <span>{p.name}: {pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
+                      <span>+{pointsLabel(qRound.pointsThisRound[p.id] ?? 0)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
         </>
       )}

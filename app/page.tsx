@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateGameCode, getSupabase, isSupabaseConfigured } from "../lib/supabase";
 import { sessionKey } from "../lib/types";
+import {
+  emptyCustomQuestion,
+  insertCustomQuestion,
+  isCustomQuestionComplete,
+  isCustomQuestionEmpty,
+} from "../lib/custom-questions";
+import CustomQuestionForm from "../components/CustomQuestionForm";
 import type { QuestionPackage } from "../lib/types";
 
 interface PackageWithCount extends QuestionPackage {
@@ -19,6 +26,7 @@ export default function Home() {
   const [packagesLoading, setPackagesLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [customQ, setCustomQ] = useState(emptyCustomQuestion());
 
   useEffect(() => {
     async function loadPackages() {
@@ -51,6 +59,9 @@ export default function Home() {
     if (!sb) return setError("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.");
     if (!name.trim()) return setError("Enter your name.");
     if (!selectedPackageId) return setError("Pick a question package first. Packages are seeded in Supabase — if none show up, run supabase/seed_packages.sql.");
+    // Names cap at 25 characters (the inputs enforce it too) so they fit
+    // on one leaderboard line.
+    const cleanName = name.trim().slice(0, 25);
     setBusy(true);
     const gameCode = generateGameCode();
     // games.host_player_id is NOT NULL, so generate the host player id first,
@@ -64,11 +75,11 @@ export default function Home() {
     if (gameErr || !game) { setBusy(false); return setError(gameErr?.message ?? "Could not start a game."); }
     const { error: playerErr } = await sb
       .from("players")
-      .insert({ id: hostPlayerId, game_id: game.id, name: name.trim(), role: "host" })
+      .insert({ id: hostPlayerId, game_id: game.id, name: cleanName, role: "host" })
       .select()
       .single();
     if (playerErr) { setBusy(false); return setError(playerErr.message); }
-    saveSession(gameCode, { player_id: hostPlayerId, game_id: game.id, name: name.trim(), role: "host" });
+    saveSession(gameCode, { player_id: hostPlayerId, game_id: game.id, name: cleanName, role: "host" });
     router.push(`/game/${gameCode}`);
   }
 
@@ -77,18 +88,28 @@ export default function Home() {
     const sb = getSupabase();
     if (!sb) return setError("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.");
     if (!name.trim() || !code.trim()) return setError("Enter a game code and your name.");
+    const cleanName = name.trim().slice(0, 25);
     setBusy(true);
     const cleanCode = code.trim().toUpperCase();
     const { data: game, error: gameErr } = await sb.from("games").select("*").eq("code", cleanCode).single();
     if (gameErr || !game) { setBusy(false); return setError("Game not found. Check the code."); }
+    // Optional custom question: all five fields or none of them.
+    if (!isCustomQuestionEmpty(customQ) && !isCustomQuestionComplete(customQ)) {
+      setBusy(false);
+      return setError("Fill in your question and all 4 choices, or leave them blank.");
+    }
+    if (isCustomQuestionComplete(customQ)) {
+      const qErr = await insertCustomQuestion(sb, game.id, customQ);
+      if (qErr) { setBusy(false); return setError(qErr); }
+    }
     // Everyone joins as a guest. The host picks the star in the lobby.
     const { data: player, error: playerErr } = await sb
       .from("players")
-      .insert({ game_id: game.id, name: name.trim(), role: "guest" })
+      .insert({ game_id: game.id, name: cleanName, role: "guest" })
       .select()
       .single();
     if (playerErr || !player) { setBusy(false); return setError(playerErr?.message ?? "Could not join game."); }
-    saveSession(cleanCode, { player_id: player.id, game_id: game.id, name: name.trim(), role: "guest" });
+    saveSession(cleanCode, { player_id: player.id, game_id: game.id, name: cleanName, role: "guest" });
     router.push(`/game/${cleanCode}`);
   }
 
@@ -105,7 +126,7 @@ export default function Home() {
         <div className="card" role="tabpanel" id="panel-create" aria-labelledby="tab-create">
           <h2>Host a game</h2>
           <label>Your name (host)</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" maxLength={25} />
           <label>Question package</label>
           {packagesLoading ? (
             <p>Loading packages…</p>
@@ -128,7 +149,8 @@ export default function Home() {
           <label>Game code</label>
           <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. ABC123" maxLength={6} />
           <label>Your name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sam" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sam" maxLength={25} />
+          <CustomQuestionForm value={customQ} onChange={setCustomQ} />
           <button onClick={joinGame} disabled={busy}>{busy ? "Joining…" : "Join game"}</button>
         </div>
       )}

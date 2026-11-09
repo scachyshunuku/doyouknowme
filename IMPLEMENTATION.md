@@ -252,3 +252,34 @@ Mobile-first for guests/subject, TV/laptop for the host. One token set in `app/g
 - [x] **Auto-advance hardening**: the Question → Results update was fire-and-forget with the "already tried" guard set before the call, so one failed attempt stalled the question forever. The guard now clears on error, so the next load retries. Verified against the live game G7AZQ6 data: all 3 non-host players had answered Q1, RLS is "anon all" on games/players/answers, all tables are in the Realtime publication, exactly 4 players (no duplicate rows) — the stall was not a data problem.
 - [x] Repro script `video-test/repro-autoadvance.js` (3 Playwright contexts via the forwarding proxy on 127.0.0.1:18080; Realtime does not push through that proxy, so pages reload explicitly — same pattern as `record.js`).
 - **Status**: Done Nov 8, pending deploy verification via the repro
+
+### Task 6.6: Name cap 25 chars + leaderboard one line (Nov 8, evening)
+
+- [x] Names cap at 25 characters: `maxLength={25}` on the name inputs (home Host/Join, game-page join card, playground star-name input) and `slice(0, 25)` in the create/join handlers, so a saved name can never exceed the cap.
+- [x] Running leaderboard rows: the name span now truncates with … (`white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0`) instead of wrapping, so "x pts · x matches" stays vertically aligned for every row. The score span was already nowrap + no-shrink.
+- [x] Final tables: `table-layout: fixed` with rank 36px and num columns 80px, name cells (`td.name`) truncate with … — a long name can no longer stretch the table or wrap.
+- **Status**: Done Nov 8, NOT YET PUSHED — held until the 61c0c99d deploy state is known (see 6.5 note)
+
+### Task 6.7: Shuffle the 4 options per game (Nov 8, evening)
+
+- [x] New `lib/shuffle.ts`: `seededShuffle` (FNV-1a hash -> mulberry32 -> Fisher-Yates) + `shuffledOptions(options, gameId, questionId)`. The order is deterministic per game+question: every player sees the same order, it survives reloads, and a new game gets a new order. Shuffling on every render would break the game — answers are stored as positions in the shown order, so the host TV, guest phones, and Results must all agree on one order for the whole question.
+- [x] Game page: `displayOptions` derived from the current question; host tiles, guest buttons, "You picked", and the Results option rows all read it. Playground: same helper with a fixed "playground" game id (stable mock order). Checked the shuffled Q2 order — Dog stays at index 0, Cat at 1 — so the deliberate Q2 mock fixture (guests agree on Dog, star picks Cat) is unchanged; the other questions' index-based mock picks keep their top == star's pick story under any order.
+- [x] RULES.md updated with the shuffle rule.
+- **Status**: Done Nov 8, NOT YET PUSHED — held with Task 6.6 until the 61c0c99d deploy state is known (see 6.5 note)
+
+### Task 6.8: Results "your pick" + Answer review on the final screen (Nov 8, evening)
+
+- [x] Results screen: the option the viewing player picked is now marked "— your pick" next to the star's "— {name}'s pick" (same subtext pattern; the host sees no marker since they never pick). Mirrored in the playground using its mock `guestPicked`.
+- [x] Final screen: new "Answer review" card below the two tables. One block per question in played order: the star's pick first (★), then each guest's pick with the points it earned that round, your own line marked "(you)", a ✓ when a pick matched the star, and "did not answer" for anyone who skipped. Picks read through the same per-game shuffled option order, so the text matches what each player saw. Mirrored in the playground with mock picks (no "(you)" marker there — the playground has no single viewer).
+- [x] RULES.md updated (Results list + Final Leaderboard section).
+- **Status**: Done Nov 8, NOT YET PUSHED — held with Tasks 6.6/6.7 until the 61c0c99d deploy state is known (see 6.5 note)
+
+### Task 7: Custom questions at join + host Skip (Nov 8, evening)
+
+- [x] Migration `supabase/migrations/0004_skip_question.sql`: `game_questions.skipped boolean not null default false`. Applied live Nov 8 and verified (column present). RLS "anon all" already covers `questions` and `game_questions`, so browser inserts/updates work — verified live with a throwaway game (`video-test/verify-custom.mjs`, cleaned up after).
+- [x] Custom questions (`lib/custom-questions.ts`, `components/CustomQuestionForm.tsx`): the join form (home Join tab and game-page join card) has a collapsed "+ Add your own question (optional)" section — question (max 140 chars) + 4 choices (max 50 each). All five fields or none; a partial fill blocks joining with an error. `{subject}` / `{host}` work in custom text. The question is saved before the player row (a failed save aborts the join, nothing half-created).
+- [x] Ordering: custom rows live at `order_index >= 1000` (`CUSTOM_ORDER_START`), so they always sort after the bank (0..N-1) and never collide with the package copy at Start. At Start the host shuffles the customs into a random order after the bank (two-phase slot swap — park on 10000+ first — because (game_id, order_index) is the primary key). Their options shuffle per game like every other question. A custom added mid-game lands last, unshuffled.
+- [x] `startGame` rework: it no longer gates the package copy on "no questions yet" (guests may have added customs before Start, which would have skipped the bank copy entirely). It now inserts only the package questions not already present, then shuffles customs, then starts.
+- [x] Host Skip (`skipQuestion`): a "Skip question" button next to "Reveal results" on the host's question view. Marks the row `skipped: true`; `load()` filters skipped rows out, so the list shrinks by one and the next question slides into the slot (index stays put) — if it was the last question, the game finishes. No points are scored, it never reaches Results, and it does not appear in the Answer review. Mirrored in the playground (`skippedIds` state; totals and review exclude skipped questions).
+- [x] Action bar is now a flex row (two buttons sit side by side; single-button bars are unchanged).
+- **Status**: Built Nov 8, pushed per William's instruction (see deploy note)

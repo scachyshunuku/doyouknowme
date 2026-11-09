@@ -4,6 +4,15 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "../../../lib/supabase";
 import { computeRoundResult, computeTotals } from "../../../lib/scoring";
 import { renderQuestionText } from "../../../lib/template";
+import { shuffledOptions } from "../../../lib/shuffle";
+import {
+  CUSTOM_ORDER_START,
+  emptyCustomQuestion,
+  insertCustomQuestion,
+  isCustomQuestionComplete,
+  isCustomQuestionEmpty,
+} from "../../../lib/custom-questions";
+import CustomQuestionForm from "../../../components/CustomQuestionForm";
 import { matchesLabel, pointsLabel } from "../../../lib/format";
 import { sessionKey } from "../../../lib/types";
 import type { Answer, Game, Player, Question } from "../../../lib/types";
@@ -27,6 +36,7 @@ export default function GamePage() {
   const [joinName, setJoinName] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
   const [joinError, setJoinError] = useState("");
+  const [customQ, setCustomQ] = useState(emptyCustomQuestion());
   // Optimistic pick: show the waiting screen the moment an option is tapped,
   // instead of waiting ~1s for the insert round-trip.
   const [pendingPick, setPendingPick] = useState<number | null>(null);
@@ -47,7 +57,7 @@ export default function GamePage() {
     const { data: playerData } = await sb.from("players").select("*").eq("game_id", g.id).order("joined_at");
     setPlayers((playerData as Player[]) ?? []);
     sessionVerifiedRef.current = true;
-    const { data: gqData } = await sb.from("game_questions").select("question_id, order_index").eq("game_id", g.id).order("order_index");
+    const { data: gqData } = await sb.from("game_questions").select("question_id, order_index").eq("game_id", g.id).eq("skipped", false).order("order_index");
     const qids = ((gqData as { question_id: string }[]) ?? []).map((x) => x.question_id);
     if (qids.length > 0) {
       const { data: qData } = await sb.from("questions").select("*").in("id", qids);
@@ -127,13 +137,19 @@ export default function GamePage() {
   const questionText = currentQuestion
     ? renderQuestionText(currentQuestion.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })
     : "";
+  // The 4 options are shuffled per game (seeded by game + question), so
+  // every player sees the same order and it survives reloads. Answers are
+  // stored as positions in this shown order.
+  const displayOptions = game && currentQuestion
+    ? shuffledOptions(currentQuestion.options, game.id, currentQuestion.id)
+    : [];
   // Running leaderboard, most points first (subject matches break ties).
   const runningLeaderboard = [...players]
     .filter((p) => p.role !== "host" && p.id !== game?.subject_player_id)
     .sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0) || (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0));
   // Results options, most answers first (ties keep the original order).
   const sortedResultOptions = currentQuestion && round
-    ? currentQuestion.options
+    ? displayOptions
         .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
         .sort((a, b) => b.count - a.count || a.i - b.i)
     : [];
@@ -192,17 +208,49 @@ export default function GamePage() {
     const sb = getSupabase();
     if (!sb || !game || !isHost || !game.subject_player_id || !game.question_package_id) return;
     setBusyStart(true); setError("");
-    if (questions.length === 0) {
-      // Copy the package's questions, in defined order, into game_questions.
-      const { data: pqData, error: pqErr } = await sb
-        .from("package_questions")
-        .select("question_id, order_index")
-        .eq("question_package_id", game.question_package_id)
-        .order("order_index");
-      if (pqErr || !pqData || pqData.length === 0) { setBusyStart(false); return setError("This question package has no questions. Seed it in Supabase first."); }
-      const rows = (pqData as { question_id: string; order_index: number }[]).map((r) => ({ game_id: game.id, question_id: r.question_id, order_index: r.order_index }));
+    // Copy the package's questions, in defined order, into game_questions —
+    // only the ones not already there. Guests may have added custom questions
+    // before Start, so "no questions yet" is not the right check.
+    const { data: pqData, error: pqErr } = await sb
+      .from("package_questions")
+      .select("question_id, order_index")
+      .eq("question_package_id", game.question_package_id)
+      .order("order_index");
+    if (pqErr || !pqData || pqData.length === 0) { setBusyStart(false); return setError("This question package has no questions. Seed it in Supabase first."); }
+    const { data: existing } = await sb.from("game_questions").select("question_id").eq("game_id", game.id);
+    const existingIds = new Set(((existing as { question_id: string }[]) ?? []).map((r) => r.question_id));
+    const rows = (pqData as { question_id: string; order_index: number }[])
+      .filter((r) => !existingIds.has(r.question_id))
+      .map((r) => ({ game_id: game.id, question_id: r.question_id, order_index: r.order_index }));
+    if (rows.length > 0) {
       const { error: gqErr } = await sb.from("game_questions").insert(rows);
       if (gqErr) { setBusyStart(false); return setError(gqErr.message); }
+    }
+    // Shuffle the guests' custom questions into a random order after the
+    // bank: permute their order_index slots among themselves. Two phases
+    // (park on 10000+ first) so no two rows ever share a slot mid-swap —
+    // (game_id, order_index) is the primary key.
+    const { data: customRows } = await sb
+      .from("game_questions")
+      .select("question_id, order_index")
+      .eq("game_id", game.id)
+      .gte("order_index", CUSTOM_ORDER_START)
+      .order("order_index");
+    const customs = (customRows as { question_id: string; order_index: number }[]) ?? [];
+    if (customs.length > 1) {
+      const slots = customs.map((r) => r.order_index);
+      for (let i = slots.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+      for (let i = 0; i < customs.length; i++) {
+        await sb.from("game_questions").update({ order_index: 10000 + i }).eq("game_id", game.id).eq("question_id", customs[i].question_id);
+      }
+      for (let i = 0; i < customs.length; i++) {
+        if (customs[i].order_index !== slots[i]) {
+          await sb.from("game_questions").update({ order_index: slots[i] }).eq("game_id", game.id).eq("question_id", customs[i].question_id);
+        }
+      }
     }
     await sb.from("games").update({ status: "question", current_question_index: 0 }).eq("id", game.id);
     setBusyStart(false); await load();
@@ -223,10 +271,20 @@ export default function GamePage() {
   async function joinGame() {
     const sb = getSupabase();
     if (!sb || !game || !joinName.trim()) return;
+    const cleanName = joinName.trim().slice(0, 25);
     setJoinBusy(true); setJoinError("");
-    const { data: player, error: e } = await sb.from("players").insert({ game_id: game.id, name: joinName.trim(), role: "guest" }).select().single();
+    // Optional custom question: all five fields or none of them.
+    if (!isCustomQuestionEmpty(customQ) && !isCustomQuestionComplete(customQ)) {
+      setJoinBusy(false);
+      return setJoinError("Fill in your question and all 4 choices, or leave them blank.");
+    }
+    if (isCustomQuestionComplete(customQ)) {
+      const qErr = await insertCustomQuestion(sb, game.id, customQ);
+      if (qErr) { setJoinBusy(false); return setJoinError(qErr); }
+    }
+    const { data: player, error: e } = await sb.from("players").insert({ game_id: game.id, name: cleanName, role: "guest" }).select().single();
     if (e || !player) { setJoinBusy(false); return setJoinError(e?.message ?? "Could not join game."); }
-    try { localStorage.setItem(sessionKey(code), JSON.stringify({ player_id: player.id, game_id: game.id, name: joinName.trim(), role: "guest" })); } catch { /* ignore */ }
+    try { localStorage.setItem(sessionKey(code), JSON.stringify({ player_id: player.id, game_id: game.id, name: cleanName, role: "guest" })); } catch { /* ignore */ }
     setMyPlayerId(player.id);
     sessionVerifiedRef.current = false;
     setJoinBusy(false);
@@ -254,6 +312,21 @@ export default function GamePage() {
       await sb.from("games").update({ status: "finished" }).eq("id", game.id);
     } else {
       await sb.from("games").update({ status: "question", current_question_index: game.current_question_index + 1 }).eq("id", game.id);
+    }
+    await load();
+  }
+
+  async function skipQuestion() {
+    const sb = getSupabase();
+    if (!sb || !game || !isHost || !currentQuestion) return;
+    // Skip the current question: no points are scored for it. The row is
+    // marked skipped (kept, not deleted) and load() filters it out, so the
+    // list shrinks by one and the next question slides into this slot — the
+    // index stays put. If it was the last question, the game is finished.
+    const { error } = await sb.from("game_questions").update({ skipped: true }).eq("game_id", game.id).eq("question_id", currentQuestion.id);
+    if (error) return setError(error.message);
+    if (game.current_question_index >= questions.length - 1) {
+      await sb.from("games").update({ status: "finished" }).eq("id", game.id);
     }
     await load();
   }
@@ -291,7 +364,8 @@ export default function GamePage() {
             <>
               <p>{players.length} player{players.length === 1 ? "" : "s"} in the lobby.</p>
               <label>Your name</label>
-              <input value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Sam" />
+              <input value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Sam" maxLength={25} />
+              <CustomQuestionForm value={customQ} onChange={setCustomQ} />
               {joinError && <div className="error">{joinError}</div>}
               <button onClick={joinGame} disabled={joinBusy || !joinName.trim()}>{joinBusy ? "Joining…" : "Join game"}</button>
             </>
@@ -335,7 +409,7 @@ export default function GamePage() {
           {me?.role === "host" ? (
             <div>
               <div className="host-options">
-                {currentQuestion.options.map((opt, i) => (
+                {displayOptions.map((opt, i) => (
                   <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
                 ))}
               </div>
@@ -343,18 +417,18 @@ export default function GamePage() {
           ) : (myAnswer || pendingPick !== null) ? (
             <div>
               <h2>✓ Answer locked in</h2>
-              <div className="my-pick">You picked: {currentQuestion.options[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</div>
+              <div className="my-pick">You picked: {displayOptions[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</div>
               <p>Waiting for everyone else…</p>
             </div>
           ) : (
             <div className="options">
-              {currentQuestion.options.map((opt, i) => (
+              {displayOptions.map((opt, i) => (
                 <button key={i} onClick={() => submitAnswer(i)}>{opt}</button>
               ))}
             </div>
           )}
           <p><span className="pill" aria-live="polite">{currentAnswers.length}/{nonHostPlayers.length} answered</span></p>
-          {isHost && <div className="action-bar"><button className="secondary" onClick={showResults}>Reveal results</button></div>}
+          {isHost && <div className="action-bar"><button className="secondary" onClick={showResults}>Reveal results</button><button className="secondary" onClick={skipQuestion}>Skip question</button></div>}
         </div>
       )}
 
@@ -365,9 +439,14 @@ export default function GamePage() {
           {sortedResultOptions.map(({ opt, i, count: total }) => {
             const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
             const isSubjectPick = round.subjectOption === i;
+            const isMyPick = myAnswer?.option_index === i;
+            const pickNotes = [
+              ...(isSubjectPick ? [`${subjectPlayer?.name ?? "the star"}'s pick`] : []),
+              ...(isMyPick ? ["your pick"] : []),
+            ];
             return (
               <div key={i} className={`result-option${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
-                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{isSubjectPick ? ` — ${subjectPlayer?.name ?? "star"}'s pick` : ""}</span><span>{total} ({pct}%)</span></div>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}{opt}{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );
@@ -395,7 +474,7 @@ export default function GamePage() {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
             <tbody>
               {leaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td>{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -406,10 +485,37 @@ export default function GamePage() {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>
               {matchesLeaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td>{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="card">
+          <h2>Answer review</h2>
+          {questions.map((q, qi) => {
+            const qAnswers = answers.filter((a) => a.question_id === q.id);
+            const qRound = computeRoundResult(qAnswers, players, game?.subject_player_id ?? null);
+            const qOptions = shuffledOptions(q.options, game.id, q.id);
+            const starAnswer = qAnswers.find((a) => a.player_id === game.subject_player_id);
+            const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
+            return (
+              <div className="review-question" key={q.id}>
+                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })}</p>
+                <div className="row"><span>★ {subjectPlayer?.name ?? "the star"}: {starPick ?? "did not answer"}</span></div>
+                {players.filter((p) => p.role === "guest").map((p) => {
+                  const a = qAnswers.find((x) => x.player_id === p.id);
+                  const pick = a ? qOptions[a.option_index] : null;
+                  const matchedStar = a !== undefined && qRound.subjectOption !== null && a.option_index === qRound.subjectOption;
+                  return (
+                    <div className="row" key={p.id}>
+                      <span>{p.name}{p.id === myPlayerId ? " (you)" : ""}: {pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
+                      <span>+{pointsLabel(qRound.pointsThisRound[p.id] ?? 0)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
         </>
       )}

@@ -55,10 +55,12 @@ No user accounts. Players are identified by name and a player id stored in local
 - A question's text can contain variables in braces: `{subject}` inserts the star's name, `{host}` inserts the host's name. Example: "What is {subject}'s favourite food?"
 - If the star has not been picked yet, `{subject}` reads as "the star".
 - All seeded questions use `{subject}`.
+- When joining, a guest can optionally add one question of their own with 4 choices. Custom questions play after the question bank, in an order shuffled when the host starts the game. Their options shuffle per game like any other question, and `{subject}` / `{host}` work in them.
 
 ### Host screen (TV) and guest screens (phones)
 
 - The host's screen is meant to be shared on a TV or computer screen: big text, and the 4 options are listed as a read-only list. The host cannot select an answer.
+- The 4 options are shuffled for each game: the order is derived from the game and the question, so every player sees the same order, it stays the same if anyone reloads, and a new game gets a new order. Answers are stored as the position in the shown order.
 - Guests and the star play on their phones: big tap targets, one question at a time.
 - During a game, a running leaderboard sits on the side of the host's screen (stacked below on phones), showing every guest's total points and star matches, most points first. The star and the host are not on it — they score 0 and are not players in the game.
 - The players list appears in the lobby only, so the host can pick the star. Once the game starts, the leaderboard is the roster.
@@ -70,6 +72,7 @@ No user accounts. Players are identified by name and a player id stored in local
 - The question and its 4 answers are on screen.
 - Everyone except the host has to select an answer, including the star.
 - The host does nothing here, and cannot see any player's chosen answer, including the star's, until Results.
+- The host can skip the current question (Skip question, next to Reveal results). A skipped question scores no points for anyone, never reaches Results, and does not appear in the Answer review.
 - A player can only answer once per question. After they choose, they go to a waiting screen, with no option to go back or change their answer. The waiting screen shows only their pick — the leaderboard beside/below it is the standings.
 - Lobby identity: the host is tagged "host"; the star gets a gold ★ beside their name, not a tag; guests get no tag. All lobby player rows are the same height.
 
@@ -81,6 +84,7 @@ No user accounts. Players are identified by name and a player id stored in local
   - How many players picked each answer, sorted most answers first
   - The top-voted option(s) highlighted in yellow (no "majority" label)
   - Which answer the star picked, starred (★) with "— {name}'s pick" text and no highlight
+  - Which answer you picked, marked "— your pick" (on your own screen only)
   - Points awarded this round, as just "+x pts" per guest — no breakdown, no star/host text
   - Running totals
 
@@ -114,6 +118,7 @@ Edge cases:
 - After all questions have been answered, the game tallies the score and shows two tables:
   1. **Final leaderboard**, ranked by total points, most points first (rank, player, points, matches).
   2. **Matches with the star**, a second table ranked by how many times each player matched the star (rank, player, matches, points). Ties are ordered by points.
+- Below the tables, an **Answer review** lists every question in order: the star's pick first, then each guest's pick with the points it earned that round, your own line marked "(you)", and a ✓ when a pick matched the star. A player who did not answer shows "did not answer".
 - The star and the host do not appear in either table. The finished screen has no side leaderboard — the two tables are the whole screen.
 
 ## Example
