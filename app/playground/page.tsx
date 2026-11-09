@@ -191,10 +191,6 @@ export default function Playground() {
               <h2>✓ Answer locked in</h2>
               <div className="my-pick">You picked: {question.options[guestPicked]}</div>
               <p>Waiting for everyone else…</p>
-              <h2>Standings</h2>
-              {leaderboard.map((p, i) => (
-                <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span></div>
-              ))}
               <button className="secondary" onClick={() => setGuestPicked(null)}>Reset (playground only)</button>
             </div>
           )}

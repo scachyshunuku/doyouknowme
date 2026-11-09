@@ -31,6 +31,11 @@ export default function GamePage() {
   // instead of waiting ~1s for the insert round-trip.
   const [pendingPick, setPendingPick] = useState<number | null>(null);
   const autoAdvancedRef = useRef("");
+  // True once a load() has finished AFTER the current session was set.
+  // The stale-session cleanup below must wait for that: right after joining,
+  // myPlayerId is set but players still holds the pre-join list, so an
+  // unverified "player not found" would delete the session just saved.
+  const sessionVerifiedRef = useRef(false);
 
   const load = useCallback(async () => {
     const sb = getSupabase();
@@ -41,6 +46,7 @@ export default function GamePage() {
     setGame(g);
     const { data: playerData } = await sb.from("players").select("*").eq("game_id", g.id).order("joined_at");
     setPlayers((playerData as Player[]) ?? []);
+    sessionVerifiedRef.current = true;
     const { data: gqData } = await sb.from("game_questions").select("question_id, order_index").eq("game_id", g.id).order("order_index");
     const qids = ((gqData as { question_id: string }[]) ?? []).map((x) => x.question_id);
     if (qids.length > 0) {
@@ -86,9 +92,11 @@ export default function GamePage() {
 
   const me = players.find((p) => p.id === myPlayerId) ?? null;
   // If a stored session points at a player who is no longer in this game,
-  // it is stale: clear it so the user can join again from home.
+  // it is stale: clear it so the user can join again from home. Only decide
+  // once a load has finished after the session was set (sessionVerifiedRef),
+  // otherwise a fresh join looks exactly like a stale session.
   useEffect(() => {
-    if (loaded && myPlayerId && players.length >= 0 && game && !me) {
+    if (loaded && myPlayerId && sessionVerifiedRef.current && game && !me) {
       try { localStorage.removeItem(sessionKey(code)); } catch { /* ignore */ }
     }
   }, [loaded, myPlayerId, me, game, code, players.length]);
@@ -133,14 +141,20 @@ export default function GamePage() {
 
   // Auto-advance Question -> Results when every non-host player has submitted.
   // Any connected client can trigger it (the update is idempotent), so it
-  // still fires if the host's live connection is stale.
+  // still fires if the host's live connection is stale. The guard is only
+  // kept after a successful update: a failed attempt clears it, so the next
+  // load retries instead of stalling the question forever.
   useEffect(() => {
     if (!game || game.status !== "question" || !allSubmitted || !currentQuestion) return;
     const key = `${game.id}:${currentQuestion.id}`;
     if (autoAdvancedRef.current === key) return;
     autoAdvancedRef.current = key;
     const sb = getSupabase();
-    if (sb) void sb.from("games").update({ status: "results" }).eq("id", game.id);
+    if (!sb) { autoAdvancedRef.current = ""; return; }
+    void (async () => {
+      const { error } = await sb.from("games").update({ status: "results" }).eq("id", game.id);
+      if (error) autoAdvancedRef.current = "";
+    })();
   }, [game, allSubmitted, currentQuestion]);
 
   async function copyInvite() {
@@ -214,6 +228,7 @@ export default function GamePage() {
     if (e || !player) { setJoinBusy(false); return setJoinError(e?.message ?? "Could not join game."); }
     try { localStorage.setItem(sessionKey(code), JSON.stringify({ player_id: player.id, game_id: game.id, name: joinName.trim(), role: "guest" })); } catch { /* ignore */ }
     setMyPlayerId(player.id);
+    sessionVerifiedRef.current = false;
     setJoinBusy(false);
     router.replace(`/game/${code}`);
     await load();
@@ -251,7 +266,6 @@ export default function GamePage() {
 
   return (
     <main className={isHost ? "tv" : "mobile"}>
-      <p><a href="/">← Leave game</a></p>
       <div className="code-row">
         <div className="code">{game.code}</div>
         <button className="small secondary" onClick={copyInvite}>{copied ? "Copied ✓" : "Copy invite link"}</button>
@@ -331,10 +345,6 @@ export default function GamePage() {
               <h2>✓ Answer locked in</h2>
               <div className="my-pick">You picked: {currentQuestion.options[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</div>
               <p>Waiting for everyone else…</p>
-              <h2>Standings</h2>
-              {runningLeaderboard.map((p, i) => (
-                <div className="row" key={p.id}><span>{i + 1}. {p.name}{p.id === game.subject_player_id ? " ★" : ""}</span><span>{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span></div>
-              ))}
             </div>
           ) : (
             <div className="options">

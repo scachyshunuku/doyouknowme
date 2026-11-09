@@ -234,3 +234,21 @@ Mobile-first for guests/subject, TV/laptop for the host. One token set in `app/g
 - [x] Host lobby: the "Julie is the star — hit Start when everyone's here." line is gone — the lobby card is just the heading and the Start button.
 - [x] RULES.md renamed throughout (display word only; `{subject}` template variable documented as inserting the star's name).
 - **Status**: Done Nov 8, pending deploy verification
+
+### Task 6.4: Host TV layout + waiting-screen cleanup (Nov 8, evening)
+
+- [x] Host TV view is now almost full width: `main.tv` max-width 1180px → 1680px, so the question panel takes the extra room.
+- [x] Letter chips (A/B/C/D) are now fixed 34px squares, flex-centred, so the letter sits dead-centre in the purple chip (was `inline-block` with padding, which sat off-centre).
+- [x] Leaderboard now spans the same vertical height as the question panel on wide screens: grid `align-items: stretch`, `.game-main` is a flex column with the card filling it, leaderboard aside margin removed so tops and bottoms align.
+- [x] "← Leave game" link deleted from the game page.
+- [x] Waiting screen no longer shows Standings — the leaderboard beside/below already shows them (game page and playground; RULES.md updated).
+- [x] Card headings no longer double their top gap: `.card > h2:first-child { margin-top: 0 }` — matches the leaderboard heading, which already had no top margin on wide screens.
+- **Status**: Done Nov 8, pending deploy verification
+
+### Task 6.5: Session deleted on join + auto-advance stall (Nov 8, evening, bug)
+
+- [x] **Found by live repro**: right after joining, `localStorage` had NO session. Root cause — the stale-session cleanup effect ran the moment `myPlayerId` was set by joining, while `players` still held the pre-join list, so "player not found" deleted the session just saved. A guest who then reloaded landed on the join card instead of back in the game.
+- [x] **Fix**: the cleanup now waits for `sessionVerifiedRef` — set true only when a `load()` finishes after the session was set, reset to false when a new session is set (join). The decision is only made against a fresh player list.
+- [x] **Auto-advance hardening**: the Question → Results update was fire-and-forget with the "already tried" guard set before the call, so one failed attempt stalled the question forever. The guard now clears on error, so the next load retries. Verified against the live game G7AZQ6 data: all 3 non-host players had answered Q1, RLS is "anon all" on games/players/answers, all tables are in the Realtime publication, exactly 4 players (no duplicate rows) — the stall was not a data problem.
+- [x] Repro script `video-test/repro-autoadvance.js` (3 Playwright contexts via the forwarding proxy on 127.0.0.1:18080; Realtime does not push through that proxy, so pages reload explicitly — same pattern as `record.js`).
+- **Status**: Done Nov 8, pending deploy verification via the repro

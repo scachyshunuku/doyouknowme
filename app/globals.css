@@ -22,6 +22,9 @@ h1 { font-size: 32px; margin: 8px 0; }
 h2 { font-size: 20px; margin: 24px 0 8px; }
 p { line-height: 1.5; color: var(--text-muted); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 16px 0; }
+/* A heading that opens a card sits on the card's padding alone — the default
+   24px top margin would double the gap above it. */
+.card > h2:first-child { margin-top: 0; }
 label { display: block; font-size: 14px; margin: 12px 0 4px; color: var(--text-muted); }
 input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: #12152a; color: #fff; font-size: 16px; }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
@@ -53,7 +56,7 @@ button.small.active { background: var(--gold); color: #111; }
 
 /* Host TV view: wide, big text, meant to be shared on a TV or computer screen.
    The host sees the 4 options as a read-only list and cannot select one. */
-main.tv { max-width: 1180px; }
+main.tv { max-width: 1680px; }
 .tv .question-text { font-size: 40px; line-height: 1.25; font-weight: 700; }
 .tv h2 { font-size: 26px; }
 .tv .code { font-size: 48px; }
@@ -61,7 +64,8 @@ main.tv { max-width: 1180px; }
 /* Read-only on purpose: dashed border and flat fill, so the host's options
    never read as tappable buttons. */
 .host-option { background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; }
-.opt-letter { display: inline-block; background: #6c5ce7; border-radius: 8px; padding: 2px 10px; font-size: 18px; margin-right: 12px; }
+/* Fixed square, flex-centred, so the letter sits dead-centre in the purple chip. */
+.opt-letter { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; padding: 0; line-height: 1; vertical-align: middle; background: #6c5ce7; border-radius: 8px; font-size: 18px; margin-right: 12px; }
 
 /* Running leaderboard: on the side on wide screens, stacked below on mobile.
    The score never wraps onto two lines. */
@@ -69,8 +73,13 @@ main.tv { max-width: 1180px; }
 .leaderboard-side .row span:first-child { min-width: 0; }
 .game-layout { display: block; }
 @media (min-width: 900px) {
-  .tv .game-layout.with-leaderboard { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
-  .tv .game-layout.with-leaderboard .leaderboard-side { position: sticky; top: 16px; }
+  /* Wide host view: question panel takes all remaining width, and both
+     panels are the same height — the leaderboard stretches to match the
+     question card, tops and bottoms aligned. */
+  .tv .game-layout.with-leaderboard { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: stretch; }
+  .tv .game-layout.with-leaderboard .game-main { display: flex; flex-direction: column; }
+  .tv .game-layout.with-leaderboard .game-main .card { flex: 1; margin: 0; }
+  .tv .game-layout.with-leaderboard .leaderboard-side { position: sticky; top: 16px; margin: 0; }
   .tv .game-layout.with-leaderboard .leaderboard-side h2 { margin-top: 0; }
 }
 /* Player name + tag/star: flex-centred, so the "host" pill sits on the

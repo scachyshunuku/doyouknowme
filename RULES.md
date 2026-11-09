@@ -70,8 +70,7 @@ No user accounts. Players are identified by name and a player id stored in local
 - The question and its 4 answers are on screen.
 - Everyone except the host has to select an answer, including the star.
 - The host does nothing here, and cannot see any player's chosen answer, including the star's, until Results.
-- A player can only answer once per question. After they choose, they go to a waiting screen, with no option to go back or change their answer.
-- The waiting screen shows the standings (running leaderboard), so guests can see the scores while they wait.
+- A player can only answer once per question. After they choose, they go to a waiting screen, with no option to go back or change their answer. The waiting screen shows only their pick — the leaderboard beside/below it is the standings.
 - Lobby identity: the host is tagged "host"; the star gets a gold ★ beside their name, not a tag; guests get no tag. All lobby player rows are the same height.
 
 ### 2. Results
