@@ -5,7 +5,7 @@
 import type { GameState } from "../../lib/use-game";
 
 export default function JoinCard({ g }: { g: GameState }) {
-  const { game, players, me, joinName, joinBusy, joinError, joinGame, switchPlayer, resumeGame, setJoinName } = g;
+  const { game, players, me, joinName, joinBusy, joinError, joinGame, resumeGame, setJoinName } = g;
   if (!game) return null;
   return (
     <>
@@ -15,7 +15,6 @@ export default function JoinCard({ g }: { g: GameState }) {
             <>
               <p>You&apos;re already in this game as <strong>{me.name}</strong>{me.role === "host" ? " (host)" : ""}.</p>
               <button onClick={() => resumeGame()}>Continue as {me.name}</button>
-              <button className="secondary" onClick={switchPlayer}>Join as someone else</button>
             </>
           ) : (
             <>

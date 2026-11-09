@@ -359,3 +359,23 @@ William: "Question package doesn't need category."
 - [x] Docs: RULES.md, ARCHITECTURE.md, AGENTS.md no longer say "category optional" — a package is a named list of questions, name required.
 - [x] Verified: `npm run build` passes.
 - **Status**: PUSHED Nov 9 ~09:15 as commit `2d8477d` and VERIFIED LIVE (home chunk page-263a6b5382505da7.js has 0 "category" references; migration 0009 already live).
+
+### Task 13: Game questions are self-contained copies (Nov 9, morning)
+
+William: "game questions should copy the whole question in so users can just add game question without adding or touching the question bank… on start the configuration is set so you can just copy over all the question package questions in shuffle it and then any user's contribution can come afterwards… mark them as a custom question and then when they're all done you can shuffle those as well."
+
+- [x] Migration `supabase/migrations/0010_game_questions_self_contained.sql` — applied live and verified. `game_questions` gains `id` (uuid PK, the per-game question identity), `text`, `options`, `is_custom`, and drops `question_id`; `answers` gains `game_question_id` (FK → game_questions, cascade) and drops `question_id`. Backfills verified: all 63 game_questions rows got text/options (1 marked is_custom from the old order_index ≥ 1000), all 75 answers got game_question_id, 0 orphans. New CHECKs: text ≤ 140, options valid (exactly 4 strings ≤ 50). `finish_contribution` rewritten for the new shape (shuffles is_custom rows by id, placing them right after the bank — consecutive slots from the bank count; verified on a throwaway game TSTR23: first call true + status `question`, bank at 0–1, customs at 2–3, second call false; test game cleaned up).
+- [x] Client: `load()` reads game_questions only (no join to the questions bank); `startGame` copies the package's questions into game_questions as full rows (text + options, is_custom false) and shuffles them once (`shuffleArray`, lib/shuffle.ts), only when the game has no questions yet; customs insert directly into game_questions (no questions-table row) at the next slot after the bank, marked is_custom, author recorded; the per-guest limit counts the player's own customs. `submitAnswer` / `skipQuestion` / scoring / FinalCard / playground all use `game_question_id` and the game-question id. `CUSTOM_ORDER_START` (1000) is gone.
+- [x] Types: `GameQuestion` is now the played question (id, game_id, text, options, order_index, is_custom, skipped, created_by_player_id); `Question` stays as the bank row type (only startGame reads the bank, for the copy); `Answer.game_question_id` replaces `question_id`.
+- [x] Docs: RULES.md / ARCHITECTURE.md updated (bank shuffled at Start, customs shuffled when the contribution phase ends — this supersedes the old "defined order, no shuffle" rule; AGENTS.md's "no shuffle in v1" line updated too).
+- [x] Verified: `npm run build` passes. Migration + RPC verified live (above).
+- **Status**: PUSHED Nov 9 ~09:25 as commit `86cdc3cb` and VERIFIED LIVE (game chunk page-53e899603b3ac204.js contains "game_question_id", "is_custom", "finish_contribution"). Full live play-through (lobby → contribution → first question → Results) still to run.
+
+### Task 14: No joining as someone else — player rows are never deleted (Nov 9, morning)
+
+William: "can we make it such that we can't switchPlayer so you can't join as someone else? I dont want deleting players."
+
+- [x] `switchPlayer` deleted from `lib/use-game.ts` (interface, function, returned state) and the "Join as someone else" button removed from `components/game/JoinCard.tsx`. Opening your own invite link while already in the game now offers only "Continue as X". No code path deletes a player row anymore, so a game cannot lose its host or its star (and their answers) to a switch.
+- [x] Docs: RULES.md now says there is no joining as someone else and a player row is never deleted.
+- [x] Verified: `npm run build` passes.
+- **Status**: NOT pushed yet — code ready; push + live verification pending.

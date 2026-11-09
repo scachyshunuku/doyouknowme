@@ -22,9 +22,9 @@ If the task requires a schema change, write a new migration in `supabase/migrati
 ## Rules that must not change without review
 
 - Scoring: +2 for matching the subject, +1 for matching the majority, max 3 per question, subject and host score 0.
-- Question Packages: a package is a named list of questions, name required. Questions associate to a package via `package_questions` and can be reused across packages. A game is one whole round of gameplay, picks one package, and plays its questions in defined order, any length. No fixed 10-question pick, no shuffle in v1. Packages are seeded in Supabase for now.
+- Question Packages: a package is a named list of questions, name required. Questions associate to a package via `package_questions` and can be reused across packages. A game is one whole round of gameplay, picks one package, and plays its questions, any length. No fixed 10-question pick. The package's questions are copied into the game and shuffled once at Start; custom questions are added after the bank and shuffled once when the contribution phase ends. Packages are seeded in Supabase for now.
 - After submitting, a player goes to a waiting screen, with no back button and no way to change their answer. The host cannot see any player's answer, including the subject's, until Results. Players who have not submitted when the host overrides get 0 and do not count as a vote.
-- Host and subject: host is fixed at creation, subject is picked by the host in the lobby, at most one of each per game, enforced by partial unique indexes. Rejoin via the localStorage session, never create a duplicate player row.
+- Host and subject: host is fixed at creation, subject is picked by the host in the lobby, at most one of each per game, enforced by partial unique indexes. Rejoin via the localStorage session, never create a duplicate player row. A player row is never deleted and there is no joining as someone else.
 - Majority includes the subject. A tie for majority counts all tied options.
 - One answer per player per question in v1.
 - No user accounts in v1. Do not add Auth without a reviewed plan.

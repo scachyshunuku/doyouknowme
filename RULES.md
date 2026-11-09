@@ -7,7 +7,7 @@ Do You Know Me? is a party quiz game. One person is the star. Everyone else trie
 ## Terminology
 
 - **Question Package**: a named list of questions you define. Has a name (required).
-- **Game**: one whole round of gameplay. Each game you start picks one question package, and plays through that package's questions in defined order.
+- **Game**: one whole round of gameplay. Each game you start picks one question package, and plays through that package's questions — copied into the game and shuffled once at Start.
 
 ## Players & Roles
 
@@ -22,7 +22,7 @@ No user accounts. Players are identified by name and a player id stored in local
 - Host starts a game, picks a question package, and shares a 6-letter code. The creator is always the host.
 - Everyone else joins with the code, as a guest. There is no join-as-host and no join-as-star.
 - The same code is used in the game URL: `/game/<CODE>`.
-- Opening an invite link asks who you are: a visitor with no session for that game enters a name and joins as a guest. If you are already in the game, the link offers Continue as yourself or Join as someone else. A plain refresh (no `?join=1`) resumes silently.
+- Opening an invite link asks who you are: a visitor with no session for that game enters a name and joins as a guest. If you are already in the game, the link offers Continue as yourself. There is no joining as someone else: a player row is never deleted, so a game cannot lose its host or its star to a switch. A plain refresh (no `?join=1`) resumes silently.
 - The session is stored in the browser's localStorage, one entry per game code (`doyouknowme:session:<CODE>`). A different browser, profile, or incognito window is a different player; a new tab in the same browser resumes the same player.
 
 ## Picking The Star
@@ -46,7 +46,7 @@ No user accounts. Players are identified by name and a player id stored in local
 - Each question has exactly 4 multiple-choice answers.
 - A package can be any length. There is no fixed number of questions.
 - Packages are seeded in Supabase for now. There is no in-app package editor in v1.
-- When the host starts a game, they pick which question package to play. That package's questions are the questions for that game, in the order you defined them. Questions play in defined order, never shuffled.
+- When the host starts a game, they pick which question package to play. That package's questions are copied into the game as self-contained rows and shuffled once at Start — the package's defined order is only the seed list, not the play order. Custom questions are added after the bank and shuffled once everyone has finished adding them.
 - The existing 10 generic seed questions become one default package, e.g. "Get to Know Me".
 - Questions are asked one by one. The host controls when to move on.
 

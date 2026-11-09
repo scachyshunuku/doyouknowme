@@ -82,7 +82,6 @@ export interface GameState {
   finishMyContribution: () => Promise<void>;
   submitAnswer: (optionIndex: number) => Promise<void>;
   joinGame: () => Promise<void>;
-  switchPlayer: () => Promise<void>;
   showResults: () => Promise<void>;
   nextQuestion: () => Promise<void>;
   skipQuestion: () => Promise<void>;
@@ -257,8 +256,10 @@ export function useGame(code: string): GameState {
   // Invite links open a join dialog: a visitor with no session for this game
   // enters a name and joins as a guest, instead of landing in the game as a
   // spectator with no way in. Opening your own invite link (?join=1) while
-  // already in the game offers Continue or Join as someone else. Plain
-  // refreshes (no param) resume silently.
+  // already in the game offers Continue as yourself. Plain refreshes (no
+  // param) resume silently. There is no "join as someone else": a player
+  // row is never deleted, so a game cannot lose its host or its star to a
+  // switch (their answers and their place in the game would go with it).
   const showJoin = loaded && !!game && (!me || joinParam);
   const currentQuestion = game && questions.length > 0 ? questions[Math.min(game.current_question_index, questions.length - 1)] : null;
   const currentAnswers = currentQuestion ? answers.filter((a) => a.game_question_id === currentQuestion.id) : [];
@@ -582,21 +583,6 @@ export function useGame(code: string): GameState {
     await load();
   }
 
-  async function switchPlayer() {
-    const sb = getSupabase();
-    // Delete the old player row first: leaving it behind creates a ghost
-    // that never answers and never finishes adding questions, which blocks
-    // auto-advance and the auto-start for the whole game. Its answers go
-    // with it (the FK cascades).
-    if (sb && myPlayerId) {
-      await sb.from("players").delete().eq("id", myPlayerId);
-    }
-    try { localStorage.removeItem(sessionKey(code)); } catch { /* ignore */ }
-    setMyPlayerId(null);
-    // showJoin stays true via !me, so the name form appears.
-    await load();
-  }
-
   async function showResults() {
     const sb = getSupabase();
     if (!sb || !game || !isHost) return;
@@ -730,7 +716,6 @@ export function useGame(code: string): GameState {
     finishMyContribution,
     submitAnswer,
     joinGame,
-    switchPlayer,
     showResults,
     nextQuestion,
     skipQuestion,
