@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "../../../lib/supabase";
 import { computeRoundResult, computeTotals } from "../../../lib/scoring";
 import { renderQuestionText } from "../../../lib/template";
@@ -11,6 +11,9 @@ import type { Answer, Game, Player, Question, QuestionPackage } from "../../../l
 export default function GamePage() {
   const params = useParams();
   const code = String(params.code ?? "").toUpperCase();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const joinParam = searchParams.get("join") === "1";
   const [game, setGame] = useState<Game | null>(null);
   const [gamePackage, setGamePackage] = useState<QuestionPackage | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -22,6 +25,9 @@ export default function GamePage() {
   const [busyStart, setBusyStart] = useState(false);
   const [busySubjectId, setBusySubjectId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [joinName, setJoinName] = useState("");
+  const [joinBusy, setJoinBusy] = useState(false);
+  const [joinError, setJoinError] = useState("");
   // Optimistic pick: show the waiting screen the moment an option is tapped,
   // instead of waiting ~1s for the insert round-trip.
   const [pendingPick, setPendingPick] = useState<number | null>(null);
@@ -93,6 +99,12 @@ export default function GamePage() {
   }, [loaded, myPlayerId, me, game, code, players.length]);
 
   const isHost = me?.role === "host" && me.id === game?.host_player_id;
+  // Invite links open a join dialog: a visitor with no session for this game
+  // enters a name and joins as a guest, instead of landing in the game as a
+  // spectator with no way in. Opening your own invite link (?join=1) while
+  // already in the game offers Continue or Join as someone else. Plain
+  // refreshes (no param) resume silently.
+  const showJoin = loaded && !!game && (!me || joinParam);
   const currentQuestion = game && questions.length > 0 ? questions[Math.min(game.current_question_index, questions.length - 1)] : null;
   const currentAnswers = currentQuestion ? answers.filter((a) => a.question_id === currentQuestion.id) : [];
   const nonHostPlayers = players.filter((p) => p.role !== "host");
@@ -130,7 +142,7 @@ export default function GamePage() {
   }, [game, allSubmitted, isHost, currentQuestion]);
 
   async function copyInvite() {
-    const url = `${window.location.origin}/game/${code}`;
+    const url = `${window.location.origin}/game/${code}?join=1`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -192,6 +204,25 @@ export default function GamePage() {
   useEffect(() => { setPendingPick(null); }, [currentQuestion?.id]);
   useEffect(() => { if (myAnswer) setPendingPick(null); }, [myAnswer]);
 
+  async function joinGame() {
+    const sb = getSupabase();
+    if (!sb || !game || !joinName.trim()) return;
+    setJoinBusy(true); setJoinError("");
+    const { data: player, error: e } = await sb.from("players").insert({ game_id: game.id, name: joinName.trim(), role: "guest" }).select().single();
+    if (e || !player) { setJoinBusy(false); return setJoinError(e?.message ?? "Could not join game."); }
+    try { localStorage.setItem(sessionKey(code), JSON.stringify({ player_id: player.id, game_id: game.id, name: joinName.trim(), role: "guest" })); } catch { /* ignore */ }
+    setMyPlayerId(player.id);
+    setJoinBusy(false);
+    router.replace(`/game/${code}`);
+    await load();
+  }
+
+  function switchPlayer() {
+    try { localStorage.removeItem(sessionKey(code)); } catch { /* ignore */ }
+    setMyPlayerId(null);
+    // showJoin stays true via !me, so the name form appears.
+  }
+
   async function showResults() {
     const sb = getSupabase();
     if (!sb || !game || !isHost) return;
@@ -223,9 +254,6 @@ export default function GamePage() {
         <div className="code">{game.code}</div>
         <button className="small secondary" onClick={copyInvite}>{copied ? "Copied ✓" : "Copy invite link"}</button>
       </div>
-      <p style={{ textAlign: "center" }}>
-        {gamePackage ? `Package: ${gamePackage.name}${gamePackage.category ? ` (${gamePackage.category})` : ""}` : ""} · Subject: {subjectPlayer?.name ?? "not picked yet"} · You: {me ? me.name : "not joined on this device"}
-      </p>
       {questions.length > 0 && game.status !== "lobby" && (
         <div>
           <div className="progress"><div style={{ width: `${Math.round(((game.status === "finished" ? questions.length : game.current_question_index + (game.status === "results" ? 1 : 0)) / questions.length) * 100)}%` }} /></div>
@@ -234,6 +262,27 @@ export default function GamePage() {
       )}
       {error && <div className="error">{error}</div>}
 
+      {showJoin ? (
+        <div className="card">
+          <h2>Join game {game.code}</h2>
+          {me ? (
+            <>
+              <p>You&apos;re already in this game as <strong>{me.name}</strong>{me.role === "host" ? " (host)" : ""}.</p>
+              <button onClick={() => router.replace(`/game/${code}`)}>Continue as {me.name}</button>
+              <button className="secondary" onClick={switchPlayer}>Join as someone else</button>
+            </>
+          ) : (
+            <>
+              <p>{gamePackage ? `Package: ${gamePackage.name}${gamePackage.category ? ` (${gamePackage.category})` : ""}` : "A game is waiting for you."} · {players.length} player{players.length === 1 ? "" : "s"} in the lobby.</p>
+              <label>Your name</label>
+              <input value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Sam" />
+              <p>You join as a guest. The host picks one guest to be the subject in the lobby.</p>
+              {joinError && <div className="error">{joinError}</div>}
+              <button onClick={joinGame} disabled={joinBusy || !joinName.trim()}>{joinBusy ? "Joining…" : "Join game"}</button>
+            </>
+          )}
+        </div>
+      ) : (
       <div className={game.status !== "lobby" ? "game-layout with-leaderboard" : "game-layout"}>
       <div className="game-main">
       <div className="card">
@@ -259,14 +308,12 @@ export default function GamePage() {
           <h2>Lobby</h2>
           {isHost ? (
             <>
-              <p>Pick one guest to be the subject, then start. The game cannot start until a subject is picked.</p>
+              <p>{game.subject_player_id ? `${subjectPlayer?.name ?? "Subject"} is the subject — hit Start when everyone's here.` : "Pick one guest to be the subject, then start. The game cannot start until a subject is picked."}</p>
               <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2}>{busyStart ? "Starting…" : "Start game"}</button></div>
-              {!game.subject_player_id && <p>Pick a subject first — tap “Make subject” next to a guest.</p>}
             </>
           ) : (
-            <p>Waiting for the host to pick a subject and start…</p>
+            <p>{game.subject_player_id ? "Waiting for the host to start…" : "Waiting for the host to pick a subject and start…"}</p>
           )}
-          {!me && <p>Join from the home page with this code to play on this device.</p>}
         </div>
       )}
 
@@ -373,6 +420,7 @@ export default function GamePage() {
         </aside>
       )}
       </div>
+      )}
     </main>
   );
 }

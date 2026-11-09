@@ -22,6 +22,8 @@ No user accounts. Players are identified by name and a player id stored in local
 - Host starts a game, picks a question package, and shares a 6-letter code. The creator is always the host.
 - Everyone else joins with the code, as a guest. There is no join-as-host and no join-as-subject.
 - The same code is used in the game URL: `/game/<CODE>`.
+- Opening an invite link asks who you are: a visitor with no session for that game enters a name and joins as a guest. If you are already in the game, the link offers Continue as yourself or Join as someone else. A plain refresh (no `?join=1`) resumes silently.
+- The session is stored in the browser's localStorage, one entry per game code (`doyouknowme:session:<CODE>`). A different browser, profile, or incognito window is a different player; a new tab in the same browser resumes the same player.
 
 ## Picking The Subject
 
