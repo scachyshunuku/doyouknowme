@@ -135,7 +135,11 @@ main.tv { max-width: 1680px; }
 
 /* Sticky action bar: the host's one primary action stays in thumb reach
    at the bottom of the screen, above the phone's home indicator. */
-.action-bar { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom)); margin-top: 16px; display: flex; gap: 10px; }
+.action-bar { margin-top: 16px; display: flex; gap: 10px; }
+/* The bar used to stick to the bottom of the viewport, but a sticky bar
+   covers the input directly above it while scrolling (the wizard's Choice
+   inputs slid under it), so it sits in normal flow below the content now —
+   it can never cover an input. */
 .action-bar button { flex: 1; margin-top: 0; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45); }
 
 /* Tabs: the Start / Join switcher on the home page. Tabs sit directly above

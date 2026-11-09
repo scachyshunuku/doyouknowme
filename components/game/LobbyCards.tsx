@@ -79,7 +79,7 @@ export default function LobbyCards({ g }: { g: GameState }) {
           >
             {Array.from({ length: 11 }, (_, i) => (
               <option key={i} value={i}>
-                {i === 0 ? "0 — no custom " : i}
+                {i === 0 ? "0 — no custom questions" : i}
               </option>
             ))}
           </select>
