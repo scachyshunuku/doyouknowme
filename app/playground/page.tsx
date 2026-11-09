@@ -4,6 +4,9 @@ import { computeRoundResult, computeTotals } from "../../lib/scoring";
 import { renderQuestionText } from "../../lib/template";
 import { shuffledOptions } from "../../lib/shuffle";
 import { matchesLabel, pointsLabel } from "../../lib/format";
+import { leaderboardPlayers, sortByMatches, sortByPoints } from "../../lib/leaderboard";
+import CustomQuestionForm from "../../components/CustomQuestionForm";
+import { emptyCustomQuestion } from "../../lib/custom-questions";
 import type { Answer, Player, Question } from "../../lib/types";
 
 // Design playground: preview every view with mock data, no Supabase, no real
@@ -59,7 +62,13 @@ export default function Playground() {
   // Mock contribution wizard: 2 slots, optional (Skip allowed).
   const [contribSlot, setContribSlot] = useState(0);
   const [contribDone, setContribDone] = useState(false);
+  const [contribQ, setContribQ] = useState(emptyCustomQuestion());
   const CONTRIB_LIMIT = 2;
+  // Mock lobby setup (mirrors the real Game setup card).
+  const [setupPackageId, setSetupPackageId] = useState<string | null>("mock-pkg");
+  const [setupLimit, setSetupLimit] = useState(2);
+  const [setupRequired, setSetupRequired] = useState(false);
+  const setupCustomOnly = setupPackageId === null;
 
   const players: Player[] = useMemo(
     () =>
@@ -102,13 +111,9 @@ export default function Playground() {
     .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
     .sort((a, b) => b.count - a.count || a.i - b.i);
   const maxCount = Math.max(...sortedOptions.map((o) => o.count));
-  const leaderboard = [...players]
-    .filter((p) => p.role !== "host" && p.role !== "subject")
-    .sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
+  const leaderboard = sortByPoints(leaderboardPlayers(players, "host", subjectId), totals);
   const guests = players.filter((p) => p.role === "guest");
-  const matchesLeaderboard = [...players]
-    .filter((p) => p.role !== "host" && p.role !== "subject")
-    .sort((a, b) => (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0) || (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
+  const matchesLeaderboard = sortByMatches(leaderboardPlayers(players, "host", subjectId), totals);
 
   const isTv = frame === "tv";
 
@@ -158,6 +163,40 @@ export default function Playground() {
               {p.role === "guest" && <button className="small" onClick={() => setSubjectId(p.id)}>Make star</button>}
             </div>
           ))}
+        </div>
+      )}
+
+      {view === "lobby" && (
+        <div className="card">
+          <h2>Game setup</h2>
+          <label>Question package</label>
+          <select value={setupPackageId ?? ""} disabled={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.value || null)}>
+            <option value="mock-pkg">Get to Know Me — General (10 questions)</option>
+            <option value="mock-test">Test Package — Test (5 questions)</option>
+          </select>
+          <label className="checkbox-row">
+            <input type="checkbox" checked={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.checked ? null : "mock-pkg")} />
+            Custom questions only
+          </label>
+          <label>Custom questions per guest</label>
+          <select value={setupLimit} onChange={(e) => { const n = Number(e.target.value); setSetupLimit(n); if (n === 0) setSetupRequired(false); }}>
+            {Array.from({ length: 11 }, (_, i) => (
+              <option key={i} value={i}>{i === 0 ? "0 — no custom questions" : i}</option>
+            ))}
+          </select>
+          <label className="checkbox-row">
+            <input type="checkbox" checked={setupRequired} disabled={setupLimit === 0} onChange={(e) => setSetupRequired(e.target.checked)} />
+            Require each guest to add their questions
+          </label>
+          {setupLimit > 0 && (
+            <p>Guests add {setupLimit} question{setupLimit === 1 ? "" : "s"} each{setupRequired ? " (required)" : ""} before the game starts.</p>
+          )}
+        </div>
+      )}
+
+      {view === "lobby" && (
+        <div className="card">
+          <h2>Lobby</h2>
           <div className="action-bar"><button onClick={() => { setQIndex(0); setGuestPicked(null); setView("host"); }}>Start game</button></div>
         </div>
       )}
@@ -174,18 +213,11 @@ export default function Playground() {
             ) : (
               <>
                 <h2>Add your questions</h2>
-                <p>Question {contribSlot + 1} of {CONTRIB_LIMIT} — you can skip any of them.</p>
-                <label>Question {contribSlot + 1} of {CONTRIB_LIMIT}</label>
-                <input placeholder="e.g. What is Alex's favourite food?" />
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n}>
-                    <label>Choice {n}</label>
-                    <input placeholder={`Choice ${n}`} />
-                  </div>
-                ))}
+                <p>You can skip any of them.</p>
+                <CustomQuestionForm label={`Question ${contribSlot + 1} of ${CONTRIB_LIMIT}`} value={contribQ} onChange={setContribQ} />
                 <div className="action-bar">
-                  <button onClick={() => { if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>{contribSlot + 1 >= CONTRIB_LIMIT ? "Complete" : "Next question"}</button>
-                  <button className="secondary" onClick={() => { if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>Skip</button>
+                  <button onClick={() => { setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>{contribSlot + 1 >= CONTRIB_LIMIT ? "Complete" : "Next question"}</button>
+                  <button className="secondary" onClick={() => { setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>Skip</button>
                 </div>
               </>
             )}
@@ -195,8 +227,8 @@ export default function Playground() {
             <p>Waiting for everyone to add their questions — 2 of 3 done.</p>
             <div className="row"><span>Alex ★</span><span>✓ Done</span></div>
             <div className="row"><span>Guest1</span><span>✓ Done</span></div>
-            <div className="row"><span>Guest2</span><span>…</span></div>
-            <div className="action-bar"><button className="secondary">Start now — skip remaining questions</button></div>
+            <div className="row"><span>Guest2</span><span className="muted">Adding…</span></div>
+            <div className="action-bar"><button className="secondary">Start now</button></div>
           </div>
         </>
       )}
@@ -349,7 +381,7 @@ export default function Playground() {
             );
           })}
         </div>
-        <div className="action-bar"><button onClick={() => { setView("lobby"); setQIndex(0); setSubjectId(""); setSkippedIds([]); setGuestPicked(null); }}>Play again</button></div>
+        <div className="action-bar"><button onClick={() => { setView("lobby"); setQIndex(0); setSubjectId(""); setSkippedIds([]); setGuestPicked(null); setContribSlot(0); setContribDone(false); setContribQ(emptyCustomQuestion()); }}>Play again</button></div>
         </>
       )}
 

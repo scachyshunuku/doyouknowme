@@ -7,11 +7,13 @@ import {
 } from "../lib/custom-questions";
 
 /**
- * Optional "add your own question" section for the join form. Always
- * visible — no toggle, no remove button. If the question is left blank the
- * player just joins; if they fill it in, all 4 choices are required (the
- * join handler enforces that). The question plays after the question bank,
- * and {star} / {host} work in it like any other question.
+ * One custom-question form: the question plus its 4 choices, used by the
+ * contribution wizard (the guest adds their questions one at a time, before
+ * the game starts). A question only counts when it and all 4 choices are
+ * filled in (the wizard enforces that). The question plays after the
+ * question bank, and {star} / {host} work in it like any other question.
+ * The choice inputs have no placeholder — the label already says which
+ * choice it is.
  */
 export default function CustomQuestionForm({
   value,
@@ -41,7 +43,6 @@ export default function CustomQuestionForm({
               choices[i] = e.target.value;
               onChange({ ...value, choices });
             }}
-            placeholder={`Choice ${i + 1}`}
             maxLength={MAX_CUSTOM_CHOICE_LENGTH}
           />
         </div>

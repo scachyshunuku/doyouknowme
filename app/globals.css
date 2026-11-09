@@ -35,6 +35,8 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 /* Checkbox row: the box stays a small square next to its label instead of
    taking the full-width input treatment. */
 .checkbox-row { display: flex; align-items: center; gap: 10px; margin: 12px 0 0; cursor: pointer; }
+.checkbox-row:has(input:disabled) { opacity: 0.5; cursor: default; }
+.muted { color: var(--text-muted); }
 .checkbox-row input[type="checkbox"] { width: 20px; height: 20px; padding: 0; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 button { width: 100%; min-height: var(--tap); padding: 14px; margin-top: 12px; border: 0; border-radius: 12px; background: var(--accent); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }

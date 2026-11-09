@@ -1,15 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * A guest's own question, added when they join. It is optional: a player
- * can join without one. Custom questions play AFTER the question bank, in
- * an order shuffled at Start (see startGame), and their options shuffle
- * per game like every other question.
+ * A guest's own question, added in the contribution phase (after Start,
+ * before the first question). Custom questions play AFTER the question
+ * bank, in an order shuffled once when everyone is done (the
+ * finish_contribution RPC), and their options shuffle per game like every
+ * other question.
  *
  * Storage: one row in `questions` (text + 4 options) and one row in
- * `game_questions`. Custom rows live at order_index >= CUSTOM_ORDER_START,
- * so they always sort after the bank (bank positions are 0..N-1) and never
- * collide with the package copy at Start.
+ * `game_questions`, with the author recorded (created_by_player_id) so the
+ * per-guest limit is checkable. Custom rows live at order_index >=
+ * CUSTOM_ORDER_START, so they always sort after the bank (bank positions
+ * are 0..N-1) and never collide with the package copy at Start.
  */
 
 export const CUSTOM_ORDER_START = 1000;
@@ -24,10 +26,6 @@ export type CustomQuestionInput = {
 
 export function emptyCustomQuestion(): CustomQuestionInput {
   return { question: "", choices: ["", "", "", ""] };
-}
-
-export function isCustomQuestionEmpty(cq: CustomQuestionInput): boolean {
-  return !cq.question.trim() && cq.choices.every((c) => !c.trim());
 }
 
 export function isCustomQuestionComplete(cq: CustomQuestionInput): boolean {
@@ -53,6 +51,7 @@ export async function insertCustomQuestion(
   sb: SupabaseClient,
   gameId: string,
   cq: CustomQuestionInput,
+  authorId: string,
 ): Promise<string | null> {
   const clean = cleanCustomQuestion(cq);
   const { data: question, error: qErr } = await sb
@@ -72,7 +71,7 @@ export async function insertCustomQuestion(
     const nextIndex = (maxRows?.[0]?.order_index ?? CUSTOM_ORDER_START - 1) + 1;
     const { error: gqErr } = await sb
       .from("game_questions")
-      .insert({ game_id: gameId, question_id: (question as { id: string }).id, order_index: nextIndex });
+      .insert({ game_id: gameId, question_id: (question as { id: string }).id, order_index: nextIndex, created_by_player_id: authorId });
     if (!gqErr) return null;
     if (gqErr.code !== "23505" || attempt === 1) return gqErr.message;
     // Another join took this slot — re-read the max and try again.

@@ -123,7 +123,7 @@ The single-column pointers are the other half of the guarantee: `games.host_play
 9. **Scores Are Computed**: No `total_points` column in v1. Totals are derived from `answers` plus the subject answer for each question. See RULES.md and `lib/scoring.ts`.
 10. **Question Templates**: Question text can contain `{subject}` and `{host}`. `lib/template.ts` (`renderQuestionText`) fills them in at render time, in the game page and the playground. The stored text keeps the braces; nothing in the database is per-game. Migration 0003 rewrote the seeded questions to use `{subject}`.
 11. **Host TV View, Guest Phone View**: The game page renders `main.tv` for the host (wide layout, big question text, the 4 options as a read-only list, running leaderboard as a side panel) and `main.mobile` for everyone else (narrow, big tap targets). Results sort options by most answers first and star the subject's pick.
-12. **Design Playground**: `/playground` is a mock, Supabase-free page that previews every view (lobby, host TV, guest phone, subject phone, results, final) with mock players and answers, so design feedback can be given without playing a real game. It reuses the real scoring and template helpers.
+12. **Design Playground**: `/playground` is a mock, Supabase-free page that previews every view (lobby, game setup, host TV, guest phone, subject phone, results, final) with mock players and answers, so design feedback can be given without playing a real game. It reuses the real scoring, template and leaderboard helpers, the real `CustomQuestionForm`, and a mock Game setup card that mirrors the lobby one.
 
 ---
 
@@ -156,16 +156,20 @@ SUPABASE SIDE
 ```
 Used by the Results view and the Final view. See RULES.md for the exact rules.
 
-**Layer 2: Game State** (`app/game/[code]/page.tsx`)
-- `createGame` — Pick a question package, create game with `question_package_id` and `host_player_id`, insert host player with role `host`, save the session in localStorage, return code
-- `joinGame` — Insert player with role `guest` only. There is no join-as-host or join-as-subject path.
+**Layer 2: Game State** (`lib/use-game.ts`, rendered by `app/game/[code]/page.tsx` + `components/game/*`)
+- The game page is a thin shell: all state, live updates, derived values and actions live in the `useGame(code)` hook (`lib/use-game.ts`), and each stage is its own component under `components/game/` (JoinCard, LobbyCards, ContributeCard, QuestionCard, ResultsCard, FinalCard, RunningLeaderboard), each taking the whole game state object. Shared helpers live in `lib/packages.ts` (package loader), `lib/leaderboard.ts` (leaderboard filters/sorts) and `lib/custom-questions.ts`.
+- `createGame` — Pick a question package, create game with `question_package_id` and `host_player_id`, insert host player with role `host`, save the session in localStorage, return code. A code collision is retried with a fresh code; a failed player insert deletes the orphan game row.
+- `joinGame` — If this browser already joined this game, restore that player (no duplicate row). Otherwise insert a player with role `guest` only. There is no join-as-host or join-as-subject path.
 - `selectSubject(playerId)` — Host only, lobby only. Caller must be `games.host_player_id`. Demote the old subject to `guest` if any, promote the chosen guest to `subject`, set `games.subject_player_id`. Blocked after the game starts.
-- `startGame` — Blocked until `subject_player_id` is set. Copy the game's package questions to game_questions in order, via `package_questions`, set status to `question`
-- `submitAnswer` — Insert one answer, unique per player per question. After submitting, the player goes to a waiting screen, with no option to go back or change the answer.
-- `showResults` — Host override, or auto-advance when all non-host players have submitted. A player who has not submitted when the host overrides gets 0 for that question and does not count as a vote. Majority is calculated only over submitted answers.
-- `nextQuestion` — Increment `current_question_index`, or set status to `finished` after the last question
+- `startGame` — Blocked until `subject_player_id` is set. Uses the lobby's current setup (package, limit, required) from local state, never a stale saved row, and commits that setup with the status change. Copy the game's package questions to game_questions in order, via `package_questions`, then go to `question` (limit 0) or `contributing` (limit > 0).
+- `finishContribution` — Called by any client once every non-host player is done (or by the host's "Start now" override). Runs the `finish_contribution` Postgres RPC (migration 0007): one transaction that locks the game row, shuffles the custom questions once after the bank, and starts the first question. Returns false when the game already started or has no questions (then it goes back to the lobby).
+- `submitContribSlot` — Re-reads the game status first and refuses to insert once the phase is over. Records the author (`game_questions.created_by_player_id`) and enforces the per-guest limit from the author's own rows.
+- `submitAnswer` — Insert one answer, unique per player per question. Re-reads the game first and only inserts while this exact question is still being answered (a late tap scores nothing). After submitting, the player goes to a waiting screen, with no option to go back or change the answer.
+- `showResults` — Host override, or auto-advance when all non-host players have submitted. A player who has not submitted when the host overrides gets 0 for that question and does not count as a vote. Majority is calculated only over submitted answers. The status update is guarded on the current status, so a stale tab cannot drag the game back.
+- `nextQuestion` — Increment `current_question_index`, or set status to `finished` after the last question. Guarded on the current status.
+- `playAgain` — Starts a fresh game: a new code, the same setup (package, limit, required) and the same host. Guests join the new code like any game; the old game stays finished.
 
-**Layer 3: Real-time Synchronization** (`app/game/[code]/page.tsx`)
+**Layer 3: Real-time Synchronization** (`lib/use-game.ts`)
 - Subscribe to Supabase channels for games, players, answers
 - On change, reload game state
 - Conflict resolution: server state always wins

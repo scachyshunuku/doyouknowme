@@ -2,12 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateGameCode, getSupabase, isSupabaseConfigured } from "../lib/supabase";
+import { loadPackagesWithCounts, type PackageWithCount } from "../lib/packages";
 import { sessionKey } from "../lib/types";
-import type { QuestionPackage } from "../lib/types";
-
-interface PackageWithCount extends QuestionPackage {
-  questionCount: number;
-}
 
 export default function Home() {
   const router = useRouter();
@@ -24,16 +20,7 @@ export default function Home() {
     async function loadPackages() {
       const sb = getSupabase();
       if (!sb) { setPackagesLoading(false); return; }
-      const { data: pkgData } = await sb.from("question_packages").select("*").order("name");
-      const { data: pqData } = await sb.from("package_questions").select("question_package_id");
-      const counts = new Map<string, number>();
-      for (const row of (pqData as { question_package_id: string }[]) ?? []) {
-        counts.set(row.question_package_id, (counts.get(row.question_package_id) ?? 0) + 1);
-      }
-      const list = ((pkgData as QuestionPackage[]) ?? []).map((p) => ({
-        ...p,
-        questionCount: counts.get(p.id) ?? 0,
-      }));
+      const list = await loadPackagesWithCounts(sb);
       setPackages(list);
       if (list.length > 0) setSelectedPackageId(list[0].id);
       setPackagesLoading(false);
@@ -55,22 +42,42 @@ export default function Home() {
     // on one leaderboard line.
     const cleanName = name.trim().slice(0, 25);
     setBusy(true);
-    const gameCode = generateGameCode();
     // games.host_player_id is NOT NULL, so generate the host player id first,
     // insert the game pointing at it, then insert the player row with that id.
-    const hostPlayerId = crypto.randomUUID();
-    const { data: game, error: gameErr } = await sb
-      .from("games")
-      .insert({ code: gameCode, question_package_id: selectedPackageId, host_player_id: hostPlayerId, status: "lobby", current_question_index: 0 })
-      .select()
-      .single();
-    if (gameErr || !game) { setBusy(false); return setError(gameErr?.message ?? "Could not start a game."); }
+    // A code collision (unique violation) is retried with a fresh code.
+    let gameCode = "";
+    let hostPlayerId = "";
+    let game: { id: string } | null = null;
+    let gameErr: { code?: string; message: string } | null = null;
+    for (let attempt = 0; attempt < 3 && !game; attempt++) {
+      gameCode = generateGameCode();
+      hostPlayerId = crypto.randomUUID();
+      const res = await sb
+        .from("games")
+        .insert({ code: gameCode, question_package_id: selectedPackageId, host_player_id: hostPlayerId, status: "lobby", current_question_index: 0 })
+        .select()
+        .single();
+      if (!res.error && res.data) {
+        game = res.data as { id: string };
+      } else if (res.error?.code === "23505") {
+        gameErr = res.error;
+      } else {
+        gameErr = res.error;
+        break;
+      }
+    }
+    if (!game) { setBusy(false); return setError(gameErr?.message ?? "Could not start a game."); }
     const { error: playerErr } = await sb
       .from("players")
       .insert({ id: hostPlayerId, game_id: game.id, name: cleanName, role: "host" })
       .select()
       .single();
-    if (playerErr) { setBusy(false); return setError(playerErr.message); }
+    if (playerErr) {
+      // No player row means no game: delete the orphan game row.
+      await sb.from("games").delete().eq("id", game.id);
+      setBusy(false);
+      return setError(playerErr.message);
+    }
     saveSession(gameCode, { player_id: hostPlayerId, game_id: game.id, name: cleanName, role: "host" });
     router.push(`/game/${gameCode}`);
   }
@@ -85,6 +92,19 @@ export default function Home() {
     const cleanCode = code.trim().toUpperCase();
     const { data: game, error: gameErr } = await sb.from("games").select("*").eq("code", cleanCode).single();
     if (gameErr || !game) { setBusy(false); return setError("Game not found. Check the code."); }
+    // If this browser already joined this game, restore that player instead
+    // of inserting a duplicate — a second row for the same person becomes a
+    // ghost that never answers and blocks auto-advance for everyone.
+    try {
+      const raw = localStorage.getItem(sessionKey(cleanCode));
+      if (raw) {
+        const saved = JSON.parse(raw) as { player_id: string; game_id: string };
+        if (saved.game_id === game.id) {
+          const { data: existing } = await sb.from("players").select("id").eq("id", saved.player_id).eq("game_id", game.id).single();
+          if (existing) { setBusy(false); router.push(`/game/${cleanCode}`); return; }
+        }
+      }
+    } catch { /* ignore */ }
     // Everyone joins as a guest. The host picks the star in the lobby.
     const { data: player, error: playerErr } = await sb
       .from("players")

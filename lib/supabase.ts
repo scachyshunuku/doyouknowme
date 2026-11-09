@@ -19,14 +19,14 @@ export function getSupabase(): SupabaseClient | null {
 }
 
 export function generateGameCode(): string {
-  // 6 chars, no I/O/0/1 to avoid confusion when read aloud.
+  // 6 chars, no I/O/0/1 to avoid confusion when read aloud. Uses the
+  // platform's secure random source, not Math.random.
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[bytes[i] % chars.length];
   }
   return code;
 }
-
-/** Backwards-compatible alias for the old name. */
-export const generateRoomCode = generateGameCode;
