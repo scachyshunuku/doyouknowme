@@ -4,7 +4,7 @@ A simple party game using Supabase and Vercel. Players join a game with a 6-lett
 
 ## Terminology
 
-- **Question Package**: a named, user-defined list of questions. Has a name (required) and a category (optional). Example: "Get to Know Me", category "General".
+- **Question Package**: a named, user-defined list of questions. Has a name (required). Example: "Get to Know Me".
 - **Question**: one question in a package, with exactly 4 answers, in a defined order.
 - **Game**: one whole round of gameplay. The host starts a game, picks a question package for it, picks the subject in the lobby, and plays through that package's questions in defined order. A game can be replayed with a different package, but each game has exactly one package.
 
@@ -34,7 +34,6 @@ A simple party game using Supabase and Vercel. Players join a game with a 6-lett
 question_packages (a named, user-defined list of questions)
 ├── id (UUID, PK)
 ├── name (TEXT, required, e.g. "Get to Know Me")
-├── category (TEXT, nullable, e.g. "Friends", "Work", "Family")
 └── created_at
 
 games (one whole round of gameplay)

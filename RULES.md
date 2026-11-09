@@ -6,7 +6,7 @@ Do You Know Me? is a party quiz game. One person is the star. Everyone else trie
 
 ## Terminology
 
-- **Question Package**: a named list of questions you define. Has a name (required) and a category (optional, e.g. "Friends", "Work", "Family").
+- **Question Package**: a named list of questions you define. Has a name (required).
 - **Game**: one whole round of gameplay. Each game you start picks one question package, and plays through that package's questions in defined order.
 
 ## Players & Roles
@@ -41,13 +41,13 @@ No user accounts. Players are identified by name and a player id stored in local
 
 ## Question Packages & Questions
 
-- A **question package** is a named list of questions you define. A package has a **name** (required) and a **category** (optional, e.g. "Friends", "Work", "Family").
+- A **question package** is a named list of questions you define. A package has a **name** (required).
 - Questions are associated to a package, and a question can be reused in more than one package.
 - Each question has exactly 4 multiple-choice answers.
 - A package can be any length. There is no fixed number of questions.
 - Packages are seeded in Supabase for now. There is no in-app package editor in v1.
 - When the host starts a game, they pick which question package to play. That package's questions are the questions for that game, in the order you defined them. Questions play in defined order, never shuffled.
-- The existing 10 generic seed questions become one default package, e.g. "Get to Know Me", category "General".
+- The existing 10 generic seed questions become one default package, e.g. "Get to Know Me".
 - Questions are asked one by one. The host controls when to move on.
 
 ### Question templates

@@ -4,7 +4,6 @@ export type GameStatus = "lobby" | "contributing" | "question" | "results" | "fi
 export interface QuestionPackage {
   id: string;
   name: string;
-  category: string | null;
   created_at: string;
 }
 

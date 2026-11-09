@@ -36,7 +36,7 @@ export interface GameState {
   joinName: string;
   joinBusy: boolean;
   joinError: string;
-  packages: { id: string; name: string; category: string | null; questionCount: number }[];
+  packages: { id: string; name: string; questionCount: number }[];
   packagesLoaded: boolean;
   lobbyPackageId: string;
   setupPackageId: string | null | undefined;
@@ -117,7 +117,7 @@ export function useGame(code: string): GameState {
   // Packages for the lobby setup card (the host can change the package
   // there); lobbyPackageId remembers the last picked package while the
   // game is custom-only.
-  const [packages, setPackages] = useState<{ id: string; name: string; category: string | null; questionCount: number }[]>([]);
+  const [packages, setPackages] = useState<{ id: string; name: string; questionCount: number }[]>([]);
   const [lobbyPackageId, setLobbyPackageId] = useState("");
   // The lobby setup is the source of truth for Start: these hold the host's
   // current selections (package, per-guest limit, required), initialized

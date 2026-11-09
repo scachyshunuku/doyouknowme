@@ -347,4 +347,15 @@ Four parallel reviews (security, code design, bug hunting, UI) ran on the 35654b
 - [x] **Playground (design #12).** Uses the real `CustomQuestionForm` (with `contribQ` state), a mock Game setup card in the lobby (package select, custom-only checkbox, limit dropdown 0–10, require checkbox, the guest line), the shared leaderboard helpers, "Start now" and "Adding…" copy, and Play again resets the contrib mock state (slot, done, draft).
 - [x] RULES.md updated (limit 0–10, replay as a new game, server-side shuffle).
 - [x] Verified: `npm run build` passes. Migrations 0007 + 0008 applied live and verified on throwaway games (RPC: first call true + status `question` + customs shuffled + bank at 0, second call false, empty game false + back to lobby; CHECKs: 26-char name rejected, 2-option question rejected, limit 11 rejected, limit 10 accepted; test games cleaned up). Playground screenshots pending. A full live play-through (lobby setup → contribution phase → first question → Play again to a new game) needs the deployed build.
-- **Status**: NOT pushed yet — awaiting William's approval (review gate). Migrations 0007 + 0008 are live (applied as part of the approved fix work; the RPC must exist before the client code that calls it is pushed).
+- **Status**: PUSHED Nov 9 ~08:48 as commit `49a3cbc` and VERIFIED LIVE (game chunk page-1916286348c79836.js contains "Start now", "Adding…", "Game setup", "contributing", "finish_contribution", "Play again"). Migrations 0007 + 0008 were already live. Follow-up fix pushed Nov 9 ~08:53 as commit `56b29c0` and VERIFIED LIVE (new chunk page-6f078d17ab0953ca.js; live CSS `.action-bar{margin-top:16px;display:flex;gap:10px}` — no sticky): the sticky action bar is gone (it covered inputs while scrolling; it now sits below the content in normal flow), and the limit-0 dropdown label was fixed to "0 — no custom questions" (the real LobbyCards had it truncated to "0 — no custom ").
+
+### Task 12: Drop the package category (Nov 9, morning)
+
+William: "Question package doesn't need category."
+
+- [x] Migration `supabase/migrations/0009_drop_package_category.sql`: `alter table public.question_packages drop column if exists category;` — applied live and verified (question_packages now has id, name, created_at only). The live rows lose only their "General" / "Test" labels; names and questions untouched.
+- [x] Code: removed `category` from `QuestionPackage` (`lib/types.ts`), `PackageWithCount` + the select + the cast (`lib/packages.ts`), the packages state type (`lib/use-game.ts`), and both package displays — home create select and the lobby setup select now read "Name (N questions)". The playground mock never used category.
+- [x] `supabase/seed_packages.sql`: the two package inserts no longer pass a category, so the seed stays runnable.
+- [x] Docs: RULES.md, ARCHITECTURE.md, AGENTS.md no longer say "category optional" — a package is a named list of questions, name required.
+- [x] Verified: `npm run build` passes.
+- **Status**: NOT pushed yet — code + migration are ready; push + live verification pending.

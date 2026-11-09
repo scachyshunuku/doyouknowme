@@ -44,7 +44,7 @@ export default function LobbyCards({ g }: { g: GameState }) {
               <option value="">{packagesLoaded ? "No question packages found" : "Loading packages…"}</option>
             ) : packages.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}{p.category ? ` — ${p.category}` : ""} ({p.questionCount} )
+                {p.name} ({p.questionCount})
               </option>
             ))}
           </select>

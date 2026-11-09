@@ -5,13 +5,13 @@
 -- a question can be in more than one package.
 
 -- Default package
-insert into public.question_packages (name, category)
-select 'Get to Know Me', 'General'
+insert into public.question_packages (name)
+select 'Get to Know Me'
 where not exists (select 1 from public.question_packages where name = 'Get to Know Me');
 
 -- Test package
-insert into public.question_packages (name, category)
-select 'Test Package', 'Test'
+insert into public.question_packages (name)
+select 'Test Package'
 where not exists (select 1 from public.question_packages where name = 'Test Package');
 
 -- Test questions (new). Question text can use {subject}; see lib/template.ts.
