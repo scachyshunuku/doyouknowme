@@ -37,6 +37,9 @@ export default function GamePage() {
   const [joinBusy, setJoinBusy] = useState(false);
   const [joinError, setJoinError] = useState("");
   const [customQ, setCustomQ] = useState(emptyCustomQuestion());
+  // Questions the host skipped. They stay in the question list (so the
+  // total never drops) but score no points for anyone.
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   // Optimistic pick: show the waiting screen the moment an option is tapped,
   // instead of waiting ~1s for the insert round-trip.
   const [pendingPick, setPendingPick] = useState<number | null>(null);
@@ -57,8 +60,10 @@ export default function GamePage() {
     const { data: playerData } = await sb.from("players").select("*").eq("game_id", g.id).order("joined_at");
     setPlayers((playerData as Player[]) ?? []);
     sessionVerifiedRef.current = true;
-    const { data: gqData } = await sb.from("game_questions").select("question_id, order_index").eq("game_id", g.id).eq("skipped", false).order("order_index");
-    const qids = ((gqData as { question_id: string }[]) ?? []).map((x) => x.question_id);
+    const { data: gqData } = await sb.from("game_questions").select("question_id, order_index, skipped").eq("game_id", g.id).order("order_index");
+    const gqRows = (gqData as { question_id: string; skipped?: boolean }[]) ?? [];
+    setSkippedIds(new Set(gqRows.filter((r) => r.skipped).map((r) => r.question_id)));
+    const qids = gqRows.map((x) => x.question_id);
     if (qids.length > 0) {
       const { data: qData } = await sb.from("questions").select("*").in("id", qids);
       const byId = new Map(((qData as Question[]) ?? []).map((q) => [q.id, q]));
@@ -127,8 +132,8 @@ export default function GamePage() {
   // Points for the current question stay hidden until its Results screen:
   // while a question is being answered, totals count only earlier questions.
   const countedQuestionIds = game?.status === "question" && currentQuestion
-    ? questions.map((q) => q.id).filter((id) => id !== currentQuestion.id)
-    : questions.map((q) => q.id);
+    ? questions.map((q) => q.id).filter((id) => id !== currentQuestion.id && !skippedIds.has(id))
+    : questions.map((q) => q.id).filter((id) => !skippedIds.has(id));
   const totals = computeTotals(answers, players, game?.subject_player_id ?? null, countedQuestionIds);
   const round = currentQuestion ? computeRoundResult(currentAnswers, players, game?.subject_player_id ?? null) : null;
   const subjectPlayer = players.find((p) => p.id === game?.subject_player_id) ?? null;
@@ -320,13 +325,16 @@ export default function GamePage() {
     const sb = getSupabase();
     if (!sb || !game || !isHost || !currentQuestion) return;
     // Skip the current question: no points are scored for it. The row is
-    // marked skipped (kept, not deleted) and load() filters it out, so the
-    // list shrinks by one and the next question slides into this slot — the
-    // index stays put. If it was the last question, the game is finished.
+    // marked skipped (kept, not deleted) and the game moves on exactly like
+    // Next Question — the skipped question stays in the list, so the total
+    // question count never drops, and it shows in the Answer review marked
+    // Skipped with +0 pts.
     const { error } = await sb.from("game_questions").update({ skipped: true }).eq("game_id", game.id).eq("question_id", currentQuestion.id);
     if (error) return setError(error.message);
-    if (game.current_question_index >= questions.length - 1) {
+    if (game.current_question_index + 1 >= questions.length) {
       await sb.from("games").update({ status: "finished" }).eq("id", game.id);
+    } else {
+      await sb.from("games").update({ status: "question", current_question_index: game.current_question_index + 1 }).eq("id", game.id);
     }
     await load();
   }
@@ -376,7 +384,7 @@ export default function GamePage() {
       <div className="game-main">
       {game.status === "lobby" && (
       <div className="card">
-        <h2>Players ({players.length})</h2>
+        <h2>Players</h2>
         {players.map((p) => (
           <div className="row player-row" key={p.id}>
             <span className="player-name">{p.name}{p.role === "host" && <span className="tag">host</span>}{p.id === game.subject_player_id && <span className="subject-star" title="Star">★</span>}{game.status !== "lobby" && <span className="tag">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span>}</span>
@@ -498,18 +506,24 @@ export default function GamePage() {
             const qOptions = shuffledOptions(q.options, game.id, q.id);
             const starAnswer = qAnswers.find((a) => a.player_id === game.subject_player_id);
             const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
+            const isSkipped = skippedIds.has(q.id);
             return (
               <div className="review-question" key={q.id}>
-                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })}</p>
-                <div className="row"><span>★ {subjectPlayer?.name ?? "the star"}: {starPick ?? "did not answer"}</span></div>
+                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })}{isSkipped ? " — Skipped" : ""}</p>
+                <div className="review-row">
+                  <span className="review-name">{subjectPlayer?.name ?? "the star"} ★</span>
+                  <span className="review-answer">{starPick ?? "did not answer"}</span>
+                  <span className="review-points" />
+                </div>
                 {players.filter((p) => p.role === "guest").map((p) => {
                   const a = qAnswers.find((x) => x.player_id === p.id);
                   const pick = a ? qOptions[a.option_index] : null;
-                  const matchedStar = a !== undefined && qRound.subjectOption !== null && a.option_index === qRound.subjectOption;
+                  const matchedStar = !isSkipped && a !== undefined && qRound.subjectOption !== null && a.option_index === qRound.subjectOption;
                   return (
-                    <div className="row" key={p.id}>
-                      <span>{p.name}{p.id === myPlayerId ? " (you)" : ""}: {pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
-                      <span>+{pointsLabel(qRound.pointsThisRound[p.id] ?? 0)}</span>
+                    <div className="review-row" key={p.id}>
+                      <span className="review-name">{p.name}{p.id === myPlayerId ? " (you)" : ""}</span>
+                      <span className="review-answer">{pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
+                      <span className="review-points">+{pointsLabel(isSkipped ? 0 : (qRound.pointsThisRound[p.id] ?? 0))}</span>
                     </div>
                   );
                 })}
@@ -526,7 +540,7 @@ export default function GamePage() {
           {runningLeaderboard.map((p, i) => (
             <div className="row" key={p.id}>
               <span>{i + 1}. {p.name}{p.id === game.subject_player_id ? " ★" : ""}</span>
-              <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
+              <span className="score"><span className="pts">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span><span>·</span><span className="matches">{matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span></span>
             </div>
           ))}
           {runningLeaderboard.length === 0 && <p>No players yet.</p>}

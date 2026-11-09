@@ -1,18 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import {
-  emptyCustomQuestion,
   MAX_CUSTOM_CHOICE_LENGTH,
   MAX_CUSTOM_QUESTION_LENGTH,
   type CustomQuestionInput,
 } from "../lib/custom-questions";
 
 /**
- * Optional "add your own question" section for the join form. Collapsed by
- * default; collapsing clears the fields, so a hidden form never submits a
- * half-filled question. The question plays after the question bank, and
- * {subject} / {host} work in it like any other question.
+ * Optional "add your own question" section for the join form. Always
+ * visible — no toggle, no remove button. If the question is left blank the
+ * player just joins; if they fill it in, all 4 choices are required (the
+ * join handler enforces that). The question plays after the question bank,
+ * and {star} / {host} work in it like any other question.
  */
 export default function CustomQuestionForm({
   value,
@@ -21,23 +20,13 @@ export default function CustomQuestionForm({
   value: CustomQuestionInput;
   onChange: (v: CustomQuestionInput) => void;
 }) {
-  const [open, setOpen] = useState(false);
-
-  if (!open) {
-    return (
-      <button type="button" className="secondary" onClick={() => setOpen(true)}>
-        + Add your own question (optional)
-      </button>
-    );
-  }
-
   return (
-    <div className="custom-question">
-      <label>Your question</label>
+    <>
+      <label>Your own question (optional)</label>
       <input
         value={value.question}
         onChange={(e) => onChange({ ...value, question: e.target.value })}
-        placeholder="e.g. What is {subject}'s favourite food?"
+        placeholder="e.g. What is {star}'s favourite food?"
         maxLength={MAX_CUSTOM_QUESTION_LENGTH}
       />
       {value.choices.map((choice, i) => (
@@ -55,17 +44,6 @@ export default function CustomQuestionForm({
           />
         </div>
       ))}
-      <p>Plays after the question bank. Leave it out to just join.</p>
-      <button
-        type="button"
-        className="secondary"
-        onClick={() => {
-          onChange(emptyCustomQuestion());
-          setOpen(false);
-        }}
-      >
-        Remove question
-      </button>
-    </div>
+    </>
   );
 }

@@ -176,7 +176,7 @@ export default function Playground() {
             {leaderboard.map((p, i) => (
               <div className="row" key={p.id}>
                 <span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span>
-                <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
+                <span className="score"><span className="pts">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span><span>·</span><span className="matches">{matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span></span>
               </div>
             ))}
           </aside>
@@ -240,7 +240,7 @@ export default function Playground() {
             {leaderboard.map((p, i) => (
               <div className="row" key={p.id}>
                 <span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span>
-                <span>{pointsLabel(totals.totalPoints[p.id] ?? 0)} · {matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span>
+                <span className="score"><span className="pts">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span><span>·</span><span className="matches">{matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span></span>
               </div>
             ))}
           </aside>
@@ -273,24 +273,30 @@ export default function Playground() {
         </div>
         <div className="card">
           <h2>Answer review</h2>
-          {QUESTIONS.filter((q) => !skippedIds.includes(q.id)).map((q, qi) => {
+          {QUESTIONS.map((q, qi) => {
             const qAnswers = allAnswers.filter((a) => a.question_id === q.id);
             const qRound = computeRoundResult(qAnswers, players, subjectId);
             const qOptions = shuffledOptions(q.options, "playground", q.id);
             const starAnswer = qAnswers.find((a) => a.player_id === subjectId);
             const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
+            const isSkipped = skippedIds.includes(q.id);
             return (
               <div className="review-question" key={q.id}>
-                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectName, host: "Sam" })}</p>
-                <div className="row"><span>★ {subjectName || "Alex"}: {starPick ?? "did not answer"}</span></div>
+                <p className="question-text">Q{qi + 1}. {renderQuestionText(q.text, { subject: subjectName, host: "Sam" })}{isSkipped ? " — Skipped" : ""}</p>
+                <div className="review-row">
+                  <span className="review-name">{subjectName || "Alex"} ★</span>
+                  <span className="review-answer">{starPick ?? "did not answer"}</span>
+                  <span className="review-points" />
+                </div>
                 {guests.map((p) => {
                   const a = qAnswers.find((x) => x.player_id === p.id);
                   const pick = a ? qOptions[a.option_index] : null;
-                  const matchedStar = a !== undefined && qRound.subjectOption !== null && a.option_index === qRound.subjectOption;
+                  const matchedStar = !isSkipped && a !== undefined && qRound.subjectOption !== null && a.option_index === qRound.subjectOption;
                   return (
-                    <div className="row" key={p.id}>
-                      <span>{p.name}: {pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
-                      <span>+{pointsLabel(qRound.pointsThisRound[p.id] ?? 0)}</span>
+                    <div className="review-row" key={p.id}>
+                      <span className="review-name">{p.name}</span>
+                      <span className="review-answer">{pick ?? "did not answer"}{matchedStar ? " ✓" : ""}</span>
+                      <span className="review-points">+{pointsLabel(isSkipped ? 0 : (qRound.pointsThisRound[p.id] ?? 0))}</span>
                     </div>
                   );
                 })}

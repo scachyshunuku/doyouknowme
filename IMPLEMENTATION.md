@@ -282,4 +282,18 @@ Mobile-first for guests/subject, TV/laptop for the host. One token set in `app/g
 - [x] `startGame` rework: it no longer gates the package copy on "no questions yet" (guests may have added customs before Start, which would have skipped the bank copy entirely). It now inserts only the package questions not already present, then shuffles customs, then starts.
 - [x] Host Skip (`skipQuestion`): a "Skip question" button next to "Reveal results" on the host's question view. Marks the row `skipped: true`; `load()` filters skipped rows out, so the list shrinks by one and the next question slides into the slot (index stays put) — if it was the last question, the game finishes. No points are scored, it never reaches Results, and it does not appear in the Answer review. Mirrored in the playground (`skippedIds` state; totals and review exclude skipped questions).
 - [x] Action bar is now a flex row (two buttons sit side by side; single-button bars are unchanged).
-- **Status**: Built Nov 8, pushed per William's instruction (see deploy note)
+- **Status**: Pushed Nov 8 as commit ef270cf (first attempt timed out on approval; retry approved). Verified LIVE Nov 8 ~23:00 (live chunk page-8d8673c87dc7e747.js, 22,856 bytes, contains "Answer review" and "Skip question", no "Leave game")
+
+### Task 8: Feedback round — select arrow, custom form, lobby count, leaderboard columns, result padding, skip keeps count, review grid (Nov 8, late evening)
+
+- [x] Home package select: `select { padding-right: 40px; }` so the dropdown arrow is never clipped.
+- [x] Custom-question form is no longer a toggle button: the question + 4 choices are always visible under the join form, labelled "Your own question (optional)". No remove button, no "plays after the question bank" blurb. Blank question = just join; filled question = all 4 choices required (unchanged validation).
+- [x] `{star}` is now a template variable (`lib/template.ts` replaces `{star}` and `{subject}` with the star's name). The custom-question placeholder reads "What is {star}'s favourite food?". Seeded questions still use `{subject}` and still work. RULES.md leads with `{star}`.
+- [x] Lobby heading is now just "Players" (the "(N)" count is gone).
+- [x] Running leaderboard score is now two fixed right-aligned columns (pts 60px, matches 92px) with the "·" between them, so points and matches line up for every row. Applied to the game page and both playground asides. Final tables already had separate columns.
+- [x] Results rows: every `.result-option` now has side padding (10px 14px; top-pick 8px 12px) and the top-pick lost its negative horizontal margin, so the gold border no longer bleeds to the card edge.
+- [x] Progress gap: `.progress-label` has 16px bottom margin, so the panels no longer sit tight under "Question x of y".
+- [x] Skip keeps the count: `load()` no longer filters skipped rows out of `questions` — a new `skippedIds` set tracks them, `countedQuestionIds` excludes them (so they score 0), and `skipQuestion` now advances like Next Question (index+1 or finished). The total never drops. The Answer review includes skipped questions marked "— Skipped" with +0 pts and no ✓. Mirrored in the playground (review includes skipped questions; totals already excluded them).
+- [x] Answer review rows are now a grid: name column (150px, right-aligned, ellipsis), answer left-aligned, points right-aligned; the star sits right of the name ("Julie ★"). The review question line is 18px on all screens (below the 20px/26px "Answer review" heading), overriding the 40px TV question size.
+- [x] Verified: `npm run build` passes. Playground screenshots checked locally (review grid, result padding, leaderboard columns). The home select and a live skip play-through need the deployed build to verify.
+- **Status**: Done Nov 8, NOT YET PUSHED — no push instruction for this round

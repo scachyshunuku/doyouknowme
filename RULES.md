@@ -52,10 +52,10 @@ No user accounts. Players are identified by name and a player id stored in local
 
 ### Question templates
 
-- A question's text can contain variables in braces: `{subject}` inserts the star's name, `{host}` inserts the host's name. Example: "What is {subject}'s favourite food?"
+- A question's text can contain variables in braces: `{star}` inserts the star's name, `{host}` inserts the host's name. `{subject}` means the same as `{star}` (seeded questions use it). Example: "What is {star}'s favourite food?"
 - If the star has not been picked yet, `{subject}` reads as "the star".
 - All seeded questions use `{subject}`.
-- When joining, a guest can optionally add one question of their own with 4 choices. Custom questions play after the question bank, in an order shuffled when the host starts the game. Their options shuffle per game like any other question, and `{subject}` / `{host}` work in them.
+- When joining, a guest can optionally add one question of their own with 4 choices. Custom questions play after the question bank, in an order shuffled when the host starts the game. Their options shuffle per game like any other question, and `{star}` / `{host}` work in them.
 
 ### Host screen (TV) and guest screens (phones)
 
@@ -72,7 +72,7 @@ No user accounts. Players are identified by name and a player id stored in local
 - The question and its 4 answers are on screen.
 - Everyone except the host has to select an answer, including the star.
 - The host does nothing here, and cannot see any player's chosen answer, including the star's, until Results.
-- The host can skip the current question (Skip question, next to Reveal results). A skipped question scores no points for anyone, never reaches Results, and does not appear in the Answer review.
+- The host can skip the current question (Skip question, next to Reveal results). A skipped question scores no points for anyone and never reaches Results. It stays in the question count (the total does not go down) and appears in the Answer review marked Skipped with +0 pts.
 - A player can only answer once per question. After they choose, they go to a waiting screen, with no option to go back or change their answer. The waiting screen shows only their pick — the leaderboard beside/below it is the standings.
 - Lobby identity: the host is tagged "host"; the star gets a gold ★ beside their name, not a tag; guests get no tag. All lobby player rows are the same height.
 
