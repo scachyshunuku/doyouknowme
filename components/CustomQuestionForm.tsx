@@ -16,13 +16,15 @@ import {
 export default function CustomQuestionForm({
   value,
   onChange,
+  label = "Your own question (optional)",
 }: {
   value: CustomQuestionInput;
   onChange: (v: CustomQuestionInput) => void;
+  label?: string;
 }) {
   return (
     <>
-      <label>Your own question (optional)</label>
+      <label>{label}</label>
       <input
         value={value.question}
         onChange={(e) => onChange({ ...value, question: e.target.value })}

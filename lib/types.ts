@@ -1,5 +1,5 @@
 export type Role = "host" | "subject" | "guest";
-export type GameStatus = "lobby" | "question" | "results" | "finished";
+export type GameStatus = "lobby" | "contributing" | "question" | "results" | "finished";
 /** Backwards-compatible alias: the old name for a game's status. */
 export type RoomStatus = GameStatus;
 
@@ -25,6 +25,10 @@ export interface Game {
   subject_name: string | null;
   status: GameStatus;
   current_question_index: number;
+  // How many custom questions each guest may add when joining (0-5).
+  custom_question_limit: number;
+  // When true, every guest must fill all of their question slots (no Skip).
+  custom_questions_required: boolean;
   created_at: string;
 }
 
@@ -36,6 +40,9 @@ export interface Player {
   game_id: string;
   name: string;
   role: Role;
+  // True once the player has finished the contribution phase (added or
+  // skipped all of their question slots).
+  contribution_done: boolean;
   joined_at: string;
 }
 

@@ -3,13 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateGameCode, getSupabase, isSupabaseConfigured } from "../lib/supabase";
 import { sessionKey } from "../lib/types";
-import {
-  emptyCustomQuestion,
-  insertCustomQuestion,
-  isCustomQuestionComplete,
-  isCustomQuestionEmpty,
-} from "../lib/custom-questions";
-import CustomQuestionForm from "../components/CustomQuestionForm";
 import type { QuestionPackage } from "../lib/types";
 
 interface PackageWithCount extends QuestionPackage {
@@ -26,7 +19,6 @@ export default function Home() {
   const [packagesLoading, setPackagesLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [customQ, setCustomQ] = useState(emptyCustomQuestion());
 
   useEffect(() => {
     async function loadPackages() {
@@ -93,15 +85,6 @@ export default function Home() {
     const cleanCode = code.trim().toUpperCase();
     const { data: game, error: gameErr } = await sb.from("games").select("*").eq("code", cleanCode).single();
     if (gameErr || !game) { setBusy(false); return setError("Game not found. Check the code."); }
-    // Optional custom question: all five fields or none of them.
-    if (!isCustomQuestionEmpty(customQ) && !isCustomQuestionComplete(customQ)) {
-      setBusy(false);
-      return setError("Fill in your question and all 4 choices, or leave them blank.");
-    }
-    if (isCustomQuestionComplete(customQ)) {
-      const qErr = await insertCustomQuestion(sb, game.id, customQ);
-      if (qErr) { setBusy(false); return setError(qErr); }
-    }
     // Everyone joins as a guest. The host picks the star in the lobby.
     const { data: player, error: playerErr } = await sb
       .from("players")
@@ -150,7 +133,6 @@ export default function Home() {
           <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. ABC123" maxLength={6} />
           <label>Your name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sam" maxLength={25} />
-          <CustomQuestionForm value={customQ} onChange={setCustomQ} />
           <button onClick={joinGame} disabled={busy}>{busy ? "Joining…" : "Join game"}</button>
         </div>
       )}
@@ -159,8 +141,9 @@ export default function Home() {
       <div className="card">
         <h2>How it works</h2>
         <ol className="steps">
-          <li><strong>Host starts a game</strong> and picks a question package.</li>
+          <li><strong>Host starts a game</strong> and picks a question package. In the lobby, the host sets how many questions each guest may add and whether they&apos;re required.</li>
           <li><strong>Guests join with the code.</strong> The host picks one guest as the star.</li>
+          <li><strong>When the host starts, everyone adds their questions first</strong> — one question at a time, then the game begins.</li>
           <li><strong>Everyone except the host answers</strong>, including the star. After answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results.</li>
           <li><strong>Results:</strong> match the star +2, match the majority +1, max 3 per question. Players who did not answer get 0 and do not count as a vote.</li>
           <li><strong>The game ends after all questions are answered.</strong> Highest scorer wins.</li>

@@ -32,10 +32,11 @@ const MOCK_PICKS: number[][] = [
   [1, 1, 3],
 ];
 
-type View = "lobby" | "host" | "guest" | "subject" | "results" | "final";
+type View = "lobby" | "contribute" | "host" | "guest" | "subject" | "results" | "final";
 
 const VIEW_LABELS: [View, string][] = [
   ["lobby", "Lobby"],
+  ["contribute", "Add questions"],
   ["host", "Host (TV)"],
   ["guest", "Guest (phone)"],
   ["subject", "Star (phone)"],
@@ -55,6 +56,10 @@ export default function Playground() {
   const [guestPicked, setGuestPicked] = useState<number | null>(null);
   // Mock skipped questions (host Skip): excluded from totals and the review.
   const [skippedIds, setSkippedIds] = useState<string[]>([]);
+  // Mock contribution wizard: 2 slots, optional (Skip allowed).
+  const [contribSlot, setContribSlot] = useState(0);
+  const [contribDone, setContribDone] = useState(false);
+  const CONTRIB_LIMIT = 2;
 
   const players: Player[] = useMemo(
     () =>
@@ -63,6 +68,7 @@ export default function Playground() {
         game_id: "mock",
         name: names[id] ?? id,
         role: id === "host" ? "host" : id === subjectId ? "subject" : "guest",
+        contribution_done: false,
         joined_at: "",
       })),
     [names, subjectId],
@@ -154,6 +160,45 @@ export default function Playground() {
           ))}
           <div className="action-bar"><button onClick={() => { setQIndex(0); setGuestPicked(null); setView("host"); }}>Start game</button></div>
         </div>
+      )}
+
+      {view === "contribute" && (
+        <>
+          <div className="card">
+            {contribDone ? (
+              <>
+                <h2>✓ You&apos;re done</h2>
+                <p>Waiting for everyone else to finish adding questions — 2 of 3 done.</p>
+                <button className="secondary" onClick={() => { setContribSlot(0); setContribDone(false); }}>Reset the mock wizard</button>
+              </>
+            ) : (
+              <>
+                <h2>Add your questions</h2>
+                <p>Question {contribSlot + 1} of {CONTRIB_LIMIT} — you can skip any of them.</p>
+                <label>Question {contribSlot + 1} of {CONTRIB_LIMIT}</label>
+                <input placeholder="e.g. What is Alex's favourite food?" />
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n}>
+                    <label>Choice {n}</label>
+                    <input placeholder={`Choice ${n}`} />
+                  </div>
+                ))}
+                <div className="action-bar">
+                  <button onClick={() => { if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>{contribSlot + 1 >= CONTRIB_LIMIT ? "Complete" : "Next question"}</button>
+                  <button className="secondary" onClick={() => { if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>Skip</button>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="card">
+            <h2>Adding questions… (what the host sees)</h2>
+            <p>Waiting for everyone to add their questions — 2 of 3 done.</p>
+            <div className="row"><span>Alex ★</span><span>✓ Done</span></div>
+            <div className="row"><span>Guest1</span><span>✓ Done</span></div>
+            <div className="row"><span>Guest2</span><span>…</span></div>
+            <div className="action-bar"><button className="secondary">Start now — skip remaining questions</button></div>
+          </div>
+        </>
       )}
 
       {view === "host" && (
@@ -304,6 +349,7 @@ export default function Playground() {
             );
           })}
         </div>
+        <div className="action-bar"><button onClick={() => { setView("lobby"); setQIndex(0); setSubjectId(""); setSkippedIds([]); setGuestPicked(null); }}>Play again</button></div>
         </>
       )}
 
