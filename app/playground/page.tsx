@@ -80,7 +80,9 @@ export default function Playground() {
     return out;
   }, [qIndex]);
 
-  const totals = computeTotals(allAnswers, players, subjectId, QUESTIONS.map((q) => q.id));
+  // Points for the current question stay hidden until its Results screen.
+  const countedAnswers = view === "results" || view === "final" ? allAnswers : allAnswers.filter((a) => a.question_id !== question.id);
+  const totals = computeTotals(countedAnswers, players, subjectId, QUESTIONS.map((q) => q.id));
   const currentAnswers = allAnswers.filter((a) => a.question_id === question.id);
   const round = computeRoundResult(currentAnswers, players, subjectId);
   const sortedOptions = question.options
@@ -88,11 +90,11 @@ export default function Playground() {
     .sort((a, b) => b.count - a.count || a.i - b.i);
   const maxCount = Math.max(...sortedOptions.map((o) => o.count));
   const leaderboard = [...players]
-    .filter((p) => p.role !== "host")
+    .filter((p) => p.role !== "host" && p.role !== "subject")
     .sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
   const guests = players.filter((p) => p.role === "guest");
   const matchesLeaderboard = [...players]
-    .filter((p) => p.role !== "host")
+    .filter((p) => p.role !== "host" && p.role !== "subject")
     .sort((a, b) => (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0) || (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
 
   const isTv = frame === "tv";
@@ -251,7 +253,7 @@ export default function Playground() {
           </table>
         </div>
         <div className="card">
-          <h2>Most matches with the subject</h2>
+          <h2>Matches with {subjectName || "Alex"}</h2>
           <table className="leaderboard-table">
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>

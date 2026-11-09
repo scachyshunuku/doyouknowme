@@ -111,7 +111,12 @@ export default function GamePage() {
   const submittedIds = new Set(currentAnswers.map((a) => a.player_id));
   const allSubmitted = nonHostPlayers.length > 0 && nonHostPlayers.every((p) => submittedIds.has(p.id));
   const myAnswer = currentQuestion ? currentAnswers.find((a) => a.player_id === myPlayerId) : null;
-  const totals = computeTotals(answers, players, game?.subject_player_id ?? null, questions.map((q) => q.id));
+  // Points for the current question stay hidden until its Results screen:
+  // while a question is being answered, totals count only earlier questions.
+  const countedQuestionIds = game?.status === "question" && currentQuestion
+    ? questions.map((q) => q.id).filter((id) => id !== currentQuestion.id)
+    : questions.map((q) => q.id);
+  const totals = computeTotals(answers, players, game?.subject_player_id ?? null, countedQuestionIds);
   const round = currentQuestion ? computeRoundResult(currentAnswers, players, game?.subject_player_id ?? null) : null;
   const subjectPlayer = players.find((p) => p.id === game?.subject_player_id) ?? null;
   const hostPlayer = players.find((p) => p.id === game?.host_player_id) ?? null;
@@ -121,7 +126,7 @@ export default function GamePage() {
     : "";
   // Running leaderboard, most points first (subject matches break ties).
   const runningLeaderboard = [...players]
-    .filter((p) => p.role !== "host")
+    .filter((p) => p.role !== "host" && p.id !== game?.subject_player_id)
     .sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0) || (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0));
   // Results options, most answers first (ties keep the original order).
   const sortedResultOptions = currentQuestion && round
@@ -132,14 +137,16 @@ export default function GamePage() {
   const maxResultCount = sortedResultOptions.length > 0 ? Math.max(...sortedResultOptions.map((o) => o.count)) : 0;
 
   // Auto-advance Question -> Results when every non-host player has submitted.
+  // Any connected client can trigger it (the update is idempotent), so it
+  // still fires if the host's live connection is stale.
   useEffect(() => {
-    if (!game || game.status !== "question" || !allSubmitted || !isHost || !currentQuestion) return;
+    if (!game || game.status !== "question" || !allSubmitted || !currentQuestion) return;
     const key = `${game.id}:${currentQuestion.id}`;
     if (autoAdvancedRef.current === key) return;
     autoAdvancedRef.current = key;
     const sb = getSupabase();
     if (sb) void sb.from("games").update({ status: "results" }).eq("id", game.id);
-  }, [game, allSubmitted, isHost, currentQuestion]);
+  }, [game, allSubmitted, currentQuestion]);
 
   async function copyInvite() {
     const url = `${window.location.origin}/game/${code}?join=1`;
@@ -244,8 +251,8 @@ export default function GamePage() {
   if (error && !game) return <main><div className="error">{error}</div><p><a href="/">Back home</a></p></main>;
   if (!game || !loaded) return <main><p>Loading game…</p></main>;
 
-  const leaderboard = [...players].filter((p) => p.role !== "host").sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
-  const matchesLeaderboard = [...players].filter((p) => p.role !== "host").sort((a, b) => (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0) || (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
+  const leaderboard = [...players].filter((p) => p.role !== "host" && p.id !== game?.subject_player_id).sort((a, b) => (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
+  const matchesLeaderboard = [...players].filter((p) => p.role !== "host" && p.id !== game?.subject_player_id).sort((a, b) => (totals.subjectMatches[b.id] ?? 0) - (totals.subjectMatches[a.id] ?? 0) || (totals.totalPoints[b.id] ?? 0) - (totals.totalPoints[a.id] ?? 0));
 
   return (
     <main className={isHost ? "tv" : "mobile"}>
@@ -283,8 +290,9 @@ export default function GamePage() {
           )}
         </div>
       ) : (
-      <div className={game.status !== "lobby" ? "game-layout with-leaderboard" : "game-layout"}>
+      <div className={game.status === "question" || game.status === "results" ? "game-layout with-leaderboard" : "game-layout"}>
       <div className="game-main">
+      {game.status === "lobby" && (
       <div className="card">
         <h2>Players ({players.length})</h2>
         {players.map((p) => (
@@ -298,10 +306,8 @@ export default function GamePage() {
           </div>
         ))}
         {players.length === 0 && <p>No players yet.</p>}
-        {/* In the question stage, do not show who has answered — only the
-            submitted count below. The host cannot see any player's answer,
-            including the subject's, until Results. */}
       </div>
+      )}
 
       {game.status === "lobby" && (
         <div className="card">
@@ -394,7 +400,7 @@ export default function GamePage() {
           </table>
         </div>
         <div className="card">
-          <h2>Most matches with the subject</h2>
+          <h2>Matches with {subjectPlayer?.name ?? "the subject"}</h2>
           <table className="leaderboard-table">
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>
@@ -407,7 +413,7 @@ export default function GamePage() {
         </>
       )}
       </div>
-      {game.status !== "lobby" && (
+      {(game.status === "question" || game.status === "results") && (
         <aside className="card leaderboard-side">
           <h2>Leaderboard</h2>
           {runningLeaderboard.map((p, i) => (

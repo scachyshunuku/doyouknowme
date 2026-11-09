@@ -60,7 +60,8 @@ No user accounts. Players are identified by name and a player id stored in local
 
 - The host's screen is meant to be shared on a TV or computer screen: big text, and the 4 options are listed as a read-only list. The host cannot select an answer.
 - Guests and the subject play on their phones: big tap targets, one question at a time.
-- During a game, a running leaderboard sits on the side of the host's screen (stacked below on phones), showing every non-host player's total points and subject matches, most points first.
+- During a game, a running leaderboard sits on the side of the host's screen (stacked below on phones), showing every guest's total points and subject matches, most points first. The subject and the host are not on it — they score 0 and are not players in the game.
+- The players list appears in the lobby only, so the host can pick the subject. Once the game starts, the leaderboard is the roster.
 
 ## Stages
 
@@ -76,10 +77,11 @@ No user accounts. Players are identified by name and a player id stored in local
 ### 2. Results
 
 - Shown automatically after everyone who is not the host has submitted, or when the host hits Reveal results.
+- Points for the current question are calculated and shown only on this screen. While the question is being answered, the running leaderboard counts only earlier questions — no one's points move when someone submits.
 - The Results screen shows, for the current question:
   - How many players picked each answer, sorted most answers first
   - The top-voted option(s) highlighted in yellow (no "majority" label)
-  - Which answer the subject picked, starred (★) and highlighted
+  - Which answer the subject picked, starred (★) with "— {name}'s pick" text and no highlight
   - Points awarded this round, as just "+x pts" per guest — no breakdown, no subject/host text
   - Running totals
 
@@ -112,7 +114,8 @@ Edge cases:
 
 - After all questions have been answered, the game tallies the score and shows two tables:
   1. **Final leaderboard**, ranked by total points, most points first (rank, player, points, matches).
-  2. **Most matches with the subject**, a second table ranked by how many times each player matched the subject (rank, player, matches, points). Ties are ordered by points.
+  2. **Matches with {subject}**, a second table ranked by how many times each player matched the subject (rank, player, matches, points). Ties are ordered by points.
+- The subject and the host do not appear in either table. The finished screen has no side leaderboard — the two tables are the whole screen.
 
 ## Example
 
