@@ -23,20 +23,20 @@ export default function QuestionCard({ g }: { g: GameState }) {
             <div>
               <div className={longOptions ? "host-options long-options" : "host-options"}>
                 {displayOptions.map((opt, i) => (
-                  <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
+                  <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span><span className="opt-text">{opt}</span></div>
                 ))}
               </div>
             </div>
           ) : (myAnswer || pendingPick !== null) ? (
             <div>
               <h2>✓ Answer locked in</h2>
-              <div className={longOptions ? "my-pick long" : "my-pick"}>You picked: {displayOptions[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</div>
+              <div className={longOptions ? "my-pick long" : "my-pick"}><span className="opt-letter">{"ABCD"[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</span><span className="opt-text">You picked: {displayOptions[myAnswer ? myAnswer.option_index : (pendingPick as number)]}</span></div>
               <p>Waiting for everyone else…</p>
             </div>
           ) : (
             <div className={longOptions ? "options long-options" : "options"}>
               {displayOptions.map((opt, i) => (
-                <button key={i} onClick={() => submitAnswer(i)}>{opt}</button>
+                <button key={i} onClick={() => submitAnswer(i)}><span className="opt-letter">{"ABCD"[i]}</span><span className="opt-text">{opt}</span></button>
               ))}
             </div>
           )}

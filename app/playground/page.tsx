@@ -250,7 +250,7 @@ export default function Playground() {
               <p className={longQuestion ? "question-text long" : "question-text"}>{questionText}</p>
               <div className={longOptions ? "host-options long-options" : "host-options"}>
                 {displayOptions.map((opt, i) => (
-                  <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span>{opt}</div>
+                  <div key={i} className="host-option"><span className="opt-letter">{"ABCD"[i]}</span><span className="opt-text">{opt}</span></div>
                 ))}
               </div>
               <p><span className="pill">2/3 answered</span></p>
@@ -276,13 +276,13 @@ export default function Playground() {
           {guestPicked === null ? (
             <div className={longOptions ? "options long-options" : "options"}>
               {displayOptions.map((opt, i) => (
-                <button key={i} onClick={() => setGuestPicked(i)}>{opt}</button>
+                <button key={i} onClick={() => setGuestPicked(i)}><span className="opt-letter">{"ABCD"[i]}</span><span className="opt-text">{opt}</span></button>
               ))}
             </div>
           ) : (
             <div>
               <h2>✓ Answer locked in</h2>
-              <div className={longOptions ? "my-pick long" : "my-pick"}>You picked: {displayOptions[guestPicked]}</div>
+              <div className={longOptions ? "my-pick long" : "my-pick"}><span className="opt-letter">{"ABCD"[guestPicked]}</span><span className="opt-text">You picked: {displayOptions[guestPicked]}</span></div>
               <p>Waiting for everyone else…</p>
               <button className="secondary" onClick={() => setGuestPicked(null)}>Reset (playground only)</button>
             </div>

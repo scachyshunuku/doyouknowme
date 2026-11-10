@@ -48,7 +48,11 @@ button.small.active { background: var(--gold); color: #111; }
 .error { background: #4a1d1d; border: 1px solid #7a2e2e; padding: 12px; border-radius: 10px; }
 .code { font-size: 36px; letter-spacing: 6px; font-weight: 800; text-align: center; }
 .options { display: grid; gap: 10px; margin-top: 12px; }
-.options button { margin: 0; text-align: left; background: #252a47; }
+/* Guest buttons are flex rows too, so the A/B/C/D chip sits on the left,
+   vertically centred, and the text wraps in its own column to its right —
+   the same layout as the host tiles, so guests know which option is which. */
+.options button { display: flex; align-items: center; gap: 12px; margin: 0; text-align: left; background: #252a47; }
+.options button .opt-text { flex: 1; min-width: 0; }
 .options button.selected { background: #6c5ce7; }
 .tag { display: inline-block; background: #2c3152; border-radius: 999px; padding: 2px 10px; font-size: 12px; margin-left: 6px; }
 .bar { height: 12px; background: #2c3152; border-radius: 999px; overflow: hidden; margin: 6px 0 12px; }
@@ -90,10 +94,13 @@ main.tv { max-width: 1680px; }
 .tv .code { font-size: 48px; }
 .host-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
 /* Read-only on purpose: dashed border and flat fill, so the host's options
-   never read as tappable buttons. */
-.host-option { background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; }
+   never read as tappable buttons. Flex row: the letter chip stays on the
+   left and the text wraps in its own column to its right, never underneath
+   the chip. */
+.host-option { display: flex; align-items: center; gap: 12px; background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; }
+.host-option .opt-text { flex: 1; min-width: 0; }
 /* Fixed square, flex-centred, so the letter sits dead-centre in the purple chip. */
-.opt-letter { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; padding: 0; line-height: 1; vertical-align: middle; background: #6c5ce7; border-radius: 8px; font-size: 18px; margin-right: 12px; }
+.opt-letter { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; padding: 0; line-height: 1; vertical-align: middle; background: #6c5ce7; border-radius: 8px; font-size: 18px; }
 
 /* Running leaderboard: on the side on wide screens, stacked below on mobile.
    The score never wraps onto two lines. Points and matches sit in two fixed,
@@ -148,7 +155,8 @@ main.tv { max-width: 1680px; }
 .pill { display: inline-block; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 14px; font-size: 15px; font-weight: 700; color: var(--text); }
 
 /* Your own pick, shown on the waiting screen as confirmation. */
-.my-pick { background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px; font-size: 18px; font-weight: 700; color: #fff; margin: 12px 0; }
+.my-pick { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px; font-size: 18px; font-weight: 700; color: #fff; margin: 12px 0; }
+.my-pick .opt-text { flex: 1; min-width: 0; }
 
 /* Sticky action bar: the host's one primary action stays in thumb reach
    at the bottom of the screen, above the phone's home indicator. */

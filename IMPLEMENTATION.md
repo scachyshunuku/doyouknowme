@@ -390,4 +390,14 @@ William: "Ideally I want questions and answers to go up to 300 characters each. 
 - [x] Results + answer review: long options clamp to 3 lines with a gold "…show more" hint and expand in place on tap (`components/ExpandableText.tsx`, threshold 100 chars). The question screen never truncates — players need the full option to choose. Found during screenshot verification: the hint was first placed *inside* the clamped span, so line-clamp hid it too — the hint is now a sibling of the clamped text, outside the clamp.
 - [x] Playground Q3 is now a long-text preview (a ~280-char question with ~140-char options) so the long-text UI is previewable there instead of only in a live game.
 - [x] Verified: `npm run build` passes; local playground screenshots confirm the host TV view (28px question, single-column 18px tiles), the guest phone view (18px question, 16px buttons, all 4 options visible), Results (clamped rows with visible "…show more", tap expands to full text with "— show less"), and the answer review (clamped picks with hints).
+- **Status**: PUSHED Nov 9 as commit `c1d2a78` and VERIFIED LIVE (game chunk page-17b0cc41a6d7be17.js contains "show more", "show less", "long-options"; live CSS contains "long-options", "expandable", "question-text.long").
+
+### Task 16: Option text beside the A/B/C/D chip, chips on mobile too (Nov 9, evening)
+
+William, from the screenshots: "i think the text should be on the right of the A/B/C/D icon so it doesnt go underneath it", then "the button isnt vertically centered anymore", then "can we add the ABCD chips in mobile too so they know".
+
+- [x] Host tiles are now a flex row: the letter chip stays on the left and the option text wraps in its own column to its right, never underneath the chip (`.host-option { display: flex; gap: 12px; }`, option text wrapped in an `.opt-text` span with `flex: 1; min-width: 0`). The chip's `margin-right` moved into the flex gap. Applied in `components/game/QuestionCard.tsx` and the playground.
+- [x] The chip is vertically centred in the tile again: the first pass used `align-items: flex-start` (chip stuck at the top), fixed to `align-items: center`. Same for the guest buttons and the "You picked" line.
+- [x] Mobile guest buttons now have the same A/B/C/D chips as the host TV view, so guests know which option is which when the host calls one out by letter. The buttons are flex rows (chip left, vertically centred; text in its own column). The "You picked" line shows the picked option's chip too.
+- [x] Verified: `npm run build` passes; local playground screenshots confirm the host TV tiles (chip centred, text beside it), the guest phone buttons (chips present, text beside them), and the "You picked" line (chip + text).
 - **Status**: PUSHED Nov 9 as commit `TODO` and VERIFIED LIVE (TODO).
