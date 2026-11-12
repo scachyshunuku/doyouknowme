@@ -490,3 +490,11 @@ William, from a screenshot of the Answer review: "i think for these answer revie
 - [x] `app/globals.css`: `.review-name { text-align: right; … }` → `text-align: left;` (the names now sit at the left edge of their column, in line with the Q1/Q2/Q3 headings and the left-aligned answers; the points stay right-aligned).
 - [x] Verified: `npm run build` passes.
 - **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18–24) and VERIFIED LIVE (live CSS contains `.review-name{text-align:left;…}`).
+
+### Task 26: Running leaderboard heading "Player" (not "Name") (Nov 11, evening)
+
+William: "leaderboard should have 'player' not 'name' to be consistent with the other rtables"
+
+- [x] `components/game/RunningLeaderboard.tsx` and both playground leaderboard asides: the heading is now "Player", matching the Final leaderboard / "Matches with {Star}" tables (which already say "Player"). The rank heading stays "Rank".
+- [x] Verified: `npm run build` passes.
+- **Status**: PUSHED Nov 11 as commit `b7f0acd` and VERIFIED LIVE (live chunk page-673c03bb213c8054.js contains "Player", 0 ">Name<" in the leaderboard).

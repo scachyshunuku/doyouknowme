@@ -1,8 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateGameCode, getSupabase, isSupabaseConfigured } from "../lib/supabase";
-import { loadPackagesWithCounts, type PackageWithCount } from "../lib/packages";
 import { sessionKey } from "../lib/types";
 
 export default function Home() {
@@ -10,23 +9,8 @@ export default function Home() {
   const [mode, setMode] = useState<"create" | "join">("create");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [packages, setPackages] = useState<PackageWithCount[]>([]);
-  const [selectedPackageId, setSelectedPackageId] = useState("");
-  const [packagesLoading, setPackagesLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    async function loadPackages() {
-      const sb = getSupabase();
-      if (!sb) { setPackagesLoading(false); return; }
-      const list = await loadPackagesWithCounts(sb);
-      setPackages(list);
-      if (list.length > 0) setSelectedPackageId(list[0].id);
-      setPackagesLoading(false);
-    }
-    void loadPackages();
-  }, []);
 
   function saveSession(gameCode: string, session: { player_id: string; game_id: string; name: string; role: string }) {
     localStorage.setItem(sessionKey(gameCode), JSON.stringify(session));
@@ -37,7 +21,9 @@ export default function Home() {
     const sb = getSupabase();
     if (!sb) return setError("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.");
     if (!name.trim()) return setError("Enter your name.");
-    if (!selectedPackageId) return setError("Pick a question package first. Packages are seeded in Supabase — if none show up, run supabase/seed_packages.sql.");
+    // The question bank is picked inside the game, in the lobby's Game
+    // setup card — the home form asks for a name only. The game starts
+    // with no bank (custom questions only) until the host picks one.
     // Names cap at 25 characters (the inputs enforce it too) so they fit
     // on one leaderboard line.
     const cleanName = name.trim().slice(0, 25);
@@ -54,7 +40,7 @@ export default function Home() {
       hostPlayerId = crypto.randomUUID();
       const res = await sb
         .from("games")
-        .insert({ code: gameCode, question_package_id: selectedPackageId, host_player_id: hostPlayerId, status: "lobby", current_question_index: 0 })
+        .insert({ code: gameCode, question_package_id: null, host_player_id: hostPlayerId, status: "lobby", current_question_index: 0 })
         .select()
         .single();
       if (!res.error && res.data) {
@@ -119,7 +105,7 @@ export default function Home() {
   return (
     <main>
       <h1>Do You Know Me?</h1>
-      <p>A party game. The host starts a game and picks a question package, picks the star in the lobby, and guests try to pick what the star would pick.</p>
+      <p>A party game. The host starts a game, picks the question bank and the star in the lobby, and guests try to pick what the star would pick.</p>
       {!isSupabaseConfigured() && <div className="error">Supabase is not configured in this deployment. Set the Vercel env vars in the README before playing.</div>}
       <div className="tabs" role="tablist" aria-label="Start or join a game">
         <button role="tab" id="tab-create" aria-selected={mode === "create"} aria-controls="panel-create" className={mode === "create" ? "tab active" : "tab"} onClick={() => setMode("create")}>Host a game</button>
@@ -130,21 +116,7 @@ export default function Home() {
           <h2>Host a game</h2>
           <label>Your name (host)</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" maxLength={25} />
-          <label>Question bank</label>
-          {packagesLoading ? (
-            <p>Loading packages…</p>
-          ) : packages.length === 0 ? (
-            <p>No question packages found. Run supabase/seed_packages.sql in Supabase.</p>
-          ) : (
-            <select value={selectedPackageId} onChange={(e) => setSelectedPackageId(e.target.value)}>
-              {packages.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.questionCount} questions)
-                </option>
-              ))}
-            </select>
-          )}
-          <button onClick={createGame} disabled={busy || packagesLoading}>{busy ? "Starting…" : "Start game"}</button>
+          <button onClick={createGame} disabled={busy}>{busy ? "Starting…" : "Start game"}</button>
         </div>
       ) : (
         <div className="card" role="tabpanel" id="panel-join" aria-labelledby="tab-join">
@@ -161,7 +133,7 @@ export default function Home() {
       <div className="card">
         <h2>How it works</h2>
         <ol className="steps">
-          <li><strong>Host starts a game</strong> and picks a question package. In the lobby, the host sets how many questions each guest may add and whether they&apos;re required.</li>
+          <li><strong>Host starts a game.</strong> In the lobby, the host picks the question bank, sets how many questions each guest may add and whether they&apos;re required.</li>
           <li><strong>Guests join with the code.</strong> The host picks one guest as the star.</li>
           <li><strong>When the host starts, everyone adds their questions first</strong> — one question at a time, then the game begins.</li>
           <li><strong>Everyone except the host answers</strong>, including the star. After answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results.</li>

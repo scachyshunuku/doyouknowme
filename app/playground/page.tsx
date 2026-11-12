@@ -180,26 +180,28 @@ export default function Playground() {
           <h2>Game setup</h2>
           <div className="field">
             <label>Question bank</label>
-            <select value={setupPackageId ?? ""} disabled={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.value || null)}>
-              <option value="mock-pkg">Get to Know Me — General (10 questions)</option>
-              <option value="mock-test">Test Package — Test (5 questions)</option>
-            </select>
-            <label className="checkbox-row">
-              <input type="checkbox" checked={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.checked ? null : "mock-pkg")} />
-              Custom questions only
-            </label>
+            <div className="bank-pills" role="radiogroup" aria-label="Question bank">
+              <button type="button" role="radio" aria-checked={setupPackageId === "mock-pkg"} className={setupPackageId === "mock-pkg" ? "pill active" : "pill"} onClick={() => setSetupPackageId("mock-pkg")}>Get to Know Me — General (10)</button>
+              <button type="button" role="radio" aria-checked={setupPackageId === "mock-test"} className={setupPackageId === "mock-test" ? "pill active" : "pill"} onClick={() => setSetupPackageId("mock-test")}>Test Package — Test (5)</button>
+              <button type="button" role="radio" aria-checked={setupCustomOnly} className={setupCustomOnly ? "pill active" : "pill"} onClick={() => setSetupPackageId(null)}>Custom only</button>
+            </div>
           </div>
           <div className="field">
-            <label>Custom questions per guest</label>
-            <select value={setupLimit} onChange={(e) => { const n = Number(e.target.value); setSetupLimit(n); if (n === 0) setSetupRequired(false); }}>
-              {Array.from({ length: 11 }, (_, i) => (
-                <option key={i} value={i}>{i}</option>
-              ))}
-            </select>
-            <label className="checkbox-row">
-              <input type="checkbox" checked={setupRequired} disabled={setupLimit === 0} onChange={(e) => setSetupRequired(e.target.checked)} />
-              Require each guest to add their questions
-            </label>
+            <label>Custom questions</label>
+            <div className="setup-row">
+              <span>Per guest</span>
+              <span className="stepper">
+                <button type="button" aria-label="Fewer custom questions per guest" disabled={setupLimit === 0} onClick={() => { const n = setupLimit - 1; setSetupLimit(n); if (n === 0) setSetupRequired(false); }}>−</button>
+                <span className="stepper-value">{setupLimit}</span>
+                <button type="button" aria-label="More custom questions per guest" disabled={setupLimit === 10} onClick={() => setSetupLimit(setupLimit + 1)}>+</button>
+              </span>
+            </div>
+            <div className="switch-row">
+              <span>Require each guest to add their questions</span>
+              <button type="button" role="switch" aria-checked={setupRequired} aria-label="Require each guest to add their questions" disabled={setupLimit === 0} className={setupRequired ? "switch on" : "switch"} onClick={() => setSetupRequired(!setupRequired)}>
+                <span className="knob" />
+              </button>
+            </div>
           </div>
           {setupLimit > 0 && (
             <p>Guests add {setupLimit} question{setupLimit === 1 ? "" : "s"} each{setupRequired ? " (required)" : ""} before the game starts.</p>

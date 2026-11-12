@@ -31,70 +31,93 @@ export default function LobbyCards({ g }: { g: GameState }) {
           <h2>Game setup</h2>
           <div className="field">
             <label>Question bank</label>
-            <select
-              value={effectivePackageId ?? lobbyPackageId}
-              onChange={async (e) => {
-                const id = e.target.value;
-                setLobbyPackageId(id);
-                setSetupPackageId(id);
-                await updateGame({ question_package_id: id });
-              }}
-              disabled={customOnly}
-            >
-              {packages.length === 0 ? (
-                <option value="">{packagesLoaded ? "No question packages found" : "Loading packages…"}</option>
-              ) : packages.map((p) => (
-                <option key={p.id} value={p.id}>
+            {/* One tap to pick a bank — no dropdown, no separate checkbox
+                that disables the select above it. "Custom only" is just
+                another choice in the same group. */}
+            <div className="bank-pills" role="radiogroup" aria-label="Question bank">
+              {packages.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={effectivePackageId === p.id}
+                  className={effectivePackageId === p.id ? "pill active" : "pill"}
+                  onClick={async () => {
+                    setLobbyPackageId(p.id);
+                    setSetupPackageId(p.id);
+                    await updateGame({ question_package_id: p.id });
+                  }}
+                >
                   {p.name} ({p.questionCount})
-                </option>
+                </button>
               ))}
-            </select>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={customOnly}
-                onChange={async (e) => {
-                  if (e.target.checked) {
-                    setSetupPackageId(null);
-                    await updateGame({ question_package_id: null });
-                  } else {
-                    const id = lobbyPackageId || packages[0]?.id || null;
-                    setSetupPackageId(id);
-                    await updateGame({ question_package_id: id });
-                  }
+              <button
+                type="button"
+                role="radio"
+                aria-checked={customOnly}
+                className={customOnly ? "pill active" : "pill"}
+                onClick={async () => {
+                  setSetupPackageId(null);
+                  await updateGame({ question_package_id: null });
                 }}
-              />
-              Custom questions only
-            </label>
+              >
+                Custom only
+              </button>
+            </div>
+            {packages.length === 0 && <p className="muted">{packagesLoaded ? "No question packages found. Run supabase/seed_packages.sql in Supabase." : "Loading packages…"}</p>}
           </div>
           <div className="field">
-            <label>Custom questions per guest</label>
-            <select
-              value={effectiveLimit}
-              onChange={async (e) => {
-                const n = Number(e.target.value);
-                setSetupLimit(n);
-                // "Require…" only applies when guests can add ; a
-                // limit of 0 clears it so the flag cannot go stale.
-                if (n === 0) setSetupRequired(false);
-                await updateGame({ custom_question_limit: n, ...(n === 0 ? { custom_questions_required: false } : {}) });
-              }}
-            >
-              {Array.from({ length: 11 }, (_, i) => (
-                <option key={i} value={i}>
-                  {i}
-                </option>
-              ))}
-            </select>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={questionsRequired}
+            <label>Custom questions</label>
+            <div className="setup-row">
+              <span>Per guest</span>
+              {/* A stepper, not a dropdown: the number is the thing, and
+                  tapping − / + is faster than opening a list of 0–10. */}
+              <span className="stepper">
+                <button
+                  type="button"
+                  aria-label="Fewer custom questions per guest"
+                  disabled={effectiveLimit === 0}
+                  onClick={async () => {
+                    const n = effectiveLimit - 1;
+                    setSetupLimit(n);
+                    if (n === 0) setSetupRequired(false);
+                    await updateGame({ custom_question_limit: n, ...(n === 0 ? { custom_questions_required: false } : {}) });
+                  }}
+                >
+                  −
+                </button>
+                <span className="stepper-value">{effectiveLimit}</span>
+                <button
+                  type="button"
+                  aria-label="More custom questions per guest"
+                  disabled={effectiveLimit === 10}
+                  onClick={async () => {
+                    const n = effectiveLimit + 1;
+                    setSetupLimit(n);
+                    await updateGame({ custom_question_limit: n });
+                  }}
+                >
+                  +
+                </button>
+              </span>
+            </div>
+            <div className="switch-row">
+              <span>Require each guest to add their questions</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={questionsRequired}
+                aria-label="Require each guest to add their questions"
                 disabled={effectiveLimit === 0}
-                onChange={async (e) => { setSetupRequired(e.target.checked); await updateGame({ custom_questions_required: e.target.checked }); }}
-              />
-              Require each guest to add their questions
-            </label>
+                className={questionsRequired ? "switch on" : "switch"}
+                onClick={async () => {
+                  setSetupRequired(!questionsRequired);
+                  await updateGame({ custom_questions_required: !questionsRequired });
+                }}
+              >
+                <span className="knob" />
+              </button>
+            </div>
           </div>
         </div>
       )}
