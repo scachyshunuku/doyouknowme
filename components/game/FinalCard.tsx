@@ -116,7 +116,6 @@ export default function FinalCard({ g }: { g: GameState }) {
             <div className="modal" role="dialog" aria-label="Add more questions" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="modal-close" aria-label="Close" onClick={() => setAddingMore(false)}>×</button>
               <h2>Add more questions</h2>
-              <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
               {addedQuestions.length > 0 && (
                 <>
                   <p>Added so far:</p>
@@ -129,7 +128,7 @@ export default function FinalCard({ g }: { g: GameState }) {
               {addError && <p className="error">{addError}</p>}
               <div className="action-bar">
                 <button onClick={() => void submitAddMore()} disabled={addBusy}>{addBusy ? "Saving…" : "Add question"}</button>
-                <button onClick={async () => { await playAddedQuestions(); setAddingMore(false); }} disabled={addedQuestions.length === 0 || busyAction !== null}>{busyAction === "play-added" ? "Starting…" : `Play these questions${addedQuestions.length > 0 ? ` (${addedQuestions.length})` : ""}`}</button>
+                <button onClick={async () => { await playAddedQuestions(); setAddingMore(false); }} disabled={addedQuestions.length === 0 || busyAction !== null}>{busyAction === "play-added" ? "Starting…" : "Play"}</button>
               </div>
             </div>
           </div>

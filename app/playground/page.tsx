@@ -443,7 +443,6 @@ export default function Playground() {
             <div className="modal" role="dialog" aria-label="Add more questions" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="modal-close" aria-label="Close" onClick={() => setAddingMore(false)}>×</button>
               <h2>Add more questions</h2>
-              <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
               {addedMore.length > 0 && (
                 <>
                   <p>Added so far:</p>
@@ -456,7 +455,7 @@ export default function Playground() {
               {addError && <p className="error">{addError}</p>}
               <div className="action-bar">
                 <button onClick={submitAddMore}>Add question</button>
-                <button onClick={() => { setQIndex(QUESTIONS.length); setGuestPicked(null); setAddingMore(false); setView("host"); }} disabled={addedMore.length === 0}>Play these questions{addedMore.length > 0 ? ` (${addedMore.length})` : ""}</button>
+                <button onClick={() => { setQIndex(QUESTIONS.length); setGuestPicked(null); setAddingMore(false); setView("host"); }} disabled={addedMore.length === 0}>Play</button>
               </div>
             </div>
           </div>
