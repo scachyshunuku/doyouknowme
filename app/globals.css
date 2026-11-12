@@ -63,6 +63,9 @@ button.small.active { background: var(--gold); color: #111; }
    than the rest — the button's margin is removed here and the row height
    is set to fit the button (44px) plus the padding, so all rows match. */
 .player-row { min-height: 72px; padding: 14px 0; align-items: center; }
+/* The last player sits flush on the card's bottom padding — its own
+   bottom padding would double the gap after the last row for no reason. */
+.player-row:last-child { padding-bottom: 0; }
 .player-row button.small { margin: 0; }
 /* The star is marked with a gold star, not a tag. */
 .subject-star { color: var(--gold); font-size: 18px; margin-left: 8px; }

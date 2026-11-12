@@ -400,4 +400,12 @@ William, from the screenshots: "i think the text should be on the right of the A
 - [x] The chip is vertically centred in the tile again: the first pass used `align-items: flex-start` (chip stuck at the top), fixed to `align-items: center`. Same for the guest buttons and the "You picked" line.
 - [x] Mobile guest buttons now have the same A/B/C/D chips as the host TV view, so guests know which option is which when the host calls one out by letter. The buttons are flex rows (chip left, vertically centred; text in its own column). The "You picked" line shows the picked option's chip too.
 - [x] Verified: `npm run build` passes; local playground screenshots confirm the host TV tiles (chip centred, text beside it), the guest phone buttons (chips present, text beside them), and the "You picked" line (chip + text).
-- **Status**: PUSHED Nov 9 as commit `TODO` and VERIFIED LIVE (TODO).
+- **Status**: PUSHED Nov 9 as commit `96b8fb9` and VERIFIED LIVE (game chunk page-b129cd0c22b6109a.js contains "opt-text" and "opt-letter"; live CSS contains "opt-text").
+
+### Task 17: Lobby — no extra margin after the last player (Nov 11, evening)
+
+William, from a screenshot of game JH9T9V: "lobby has extra margin at the bottom of the last player. I dont think we need that."
+
+- [x] The last player row's own bottom padding (14px) stacked on the card's bottom padding (16px), leaving ~30px of dead space after the last player. Added `.player-row:last-child { padding-bottom: 0; }` so the last row sits flush on the card's padding, matching the top (the heading sits on the same 16px). Measured in the playground lobby: gap after the last player is now 17px (16px card padding + 1px border), down from ~31px.
+- [x] Verified: `npm run build` passes.
+- **Status**: PUSHED Nov 11 as commit `TODO` and VERIFIED LIVE (TODO).
