@@ -435,26 +435,29 @@ export default function Playground() {
           })}
         </div>
         <div className="action-bar">
-          <button className="secondary" onClick={() => { setAddingMore((v) => !v); setAddError(""); }}>{addingMore ? "Back to results" : "Add more questions"}</button>
+          <button className="secondary" onClick={() => { setAddingMore(true); setAddError(""); }}>Add more questions</button>
           <button onClick={() => { setView("lobby"); setQIndex(0); setSubjectId(""); setSkippedIds([]); setGuestPicked(null); setContribSlot(0); setContribDone(false); setContribQ(emptyCustomQuestion()); setAddingMore(false); setAddedMore([]); setAddQ(emptyCustomQuestion()); }}>Play again</button>
         </div>
         {addingMore && (
-          <div className="card">
-            <h2>Add more questions</h2>
-            <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
-            {addedMore.length > 0 && (
-              <>
-                <p>Added so far:</p>
-                {addedMore.map((q, i) => (
-                  <div className="row" key={q.id}><span>{i + 1}. {q.text}</span></div>
-                ))}
-              </>
-            )}
-            <CustomQuestionForm label={`Question ${addedMore.length + 1}`} value={addQ} onChange={setAddQ} starName={subjectName || null} />
-            {addError && <p className="error">{addError}</p>}
-            <div className="action-bar">
-              <button onClick={submitAddMore}>Add question</button>
-              <button onClick={() => { setQIndex(QUESTIONS.length); setGuestPicked(null); setView("host"); }} disabled={addedMore.length === 0}>Play these questions{addedMore.length > 0 ? ` (${addedMore.length})` : ""}</button>
+          <div className="modal-backdrop" onClick={() => setAddingMore(false)}>
+            <div className="modal" role="dialog" aria-label="Add more questions" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="modal-close" aria-label="Close" onClick={() => setAddingMore(false)}>×</button>
+              <h2>Add more questions</h2>
+              <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
+              {addedMore.length > 0 && (
+                <>
+                  <p>Added so far:</p>
+                  {addedMore.map((q, i) => (
+                    <div className="row" key={q.id}><span>{i + 1}. {q.text}</span></div>
+                  ))}
+                </>
+              )}
+              <CustomQuestionForm label={`Question ${addedMore.length + 1}`} value={addQ} onChange={setAddQ} starName={subjectName || null} />
+              {addError && <p className="error">{addError}</p>}
+              <div className="action-bar">
+                <button onClick={submitAddMore}>Add question</button>
+                <button onClick={() => { setQIndex(QUESTIONS.length); setGuestPicked(null); setAddingMore(false); setView("host"); }} disabled={addedMore.length === 0}>Play these questions{addedMore.length > 0 ? ` (${addedMore.length})` : ""}</button>
+              </div>
             </div>
           </div>
         )}

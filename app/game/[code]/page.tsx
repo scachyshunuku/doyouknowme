@@ -30,8 +30,21 @@ export default function GamePage() {
       </div>
       {questions.length > 0 && game.status !== "lobby" && game.status !== "contributing" && (
         <div>
-          <div className="progress"><div style={{ width: `${Math.round(((game.status === "finished" ? questions.length : game.current_question_index + (game.status === "results" ? 1 : 0)) / questions.length) * 100)}%` }} /></div>
-          <p className="progress-label">Question {Math.min(game.current_question_index + 1, questions.length)} of {questions.length}</p>
+          {/* Added questions (Task 32) sit past the last one played until the
+              host resumes the game, so they must not move the total before
+              the game continues: while finished, the total is the questions
+              played so far, not every question in the game. Otherwise the
+              label jumps to "Question 3 of 4" the moment one is added. */}
+          {(() => {
+            const total = game.status === "finished" ? game.current_question_index + 1 : questions.length;
+            const done = game.status === "finished" ? total : game.current_question_index + (game.status === "results" ? 1 : 0);
+            return (
+              <>
+                <div className="progress"><div style={{ width: `${Math.round((done / total) * 100)}%` }} /></div>
+                <p className="progress-label">Question {Math.min(game.current_question_index + 1, total)} of {total}</p>
+              </>
+            );
+          })()}
         </div>
       )}
       {error && <div className="error">{error}</div>}

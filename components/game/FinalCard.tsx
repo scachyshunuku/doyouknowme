@@ -60,7 +60,11 @@ export default function FinalCard({ g }: { g: GameState }) {
         </div>
         <div className="card">
           <h2>Answer review</h2>
-          {questions.map((q, qi) => {
+          {/* Only the questions actually played: a question the host added
+              (Task 32) sits past the last one played until the game resumes,
+              so it must not show up here — or in the "Question X of Y"
+              total — before it has been played. */}
+          {questions.slice(0, game.current_question_index + 1).map((q, qi) => {
             const qAnswers = answers.filter((a) => a.game_question_id === q.id);
             const qRound = computeRoundResult(qAnswers, players, game?.subject_player_id ?? null);
             const qOptions = shuffledOptions(q.options, game.id, q.id);
@@ -98,27 +102,35 @@ export default function FinalCard({ g }: { g: GameState }) {
         </div>
         {isHost && (
           <div className="action-bar">
-            <button className="secondary" onClick={() => { setAddingMore((v) => !v); setAddError(""); }}>{addingMore ? "Back to results" : "Add more questions"}</button>
+            <button className="secondary" onClick={() => { setAddingMore(true); setAddError(""); }}>Add more questions</button>
             <button onClick={playAgain} disabled={busyAction !== null}>{busyAction === "replay" ? "Starting a new game…" : "Play again"}</button>
           </div>
         )}
+        {/* "Add more questions" is a modal, not an inline card: the host
+            presses the button, the dialog opens for the new questions, and
+            the × (or tapping outside) closes it. There is no "Back to
+            results" — everything is on the same page, so that label meant
+            nothing. */}
         {isHost && addingMore && (
-          <div className="card">
-            <h2>Add more questions</h2>
-            <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
-            {addedQuestions.length > 0 && (
-              <>
-                <p>Added so far:</p>
-                {addedQuestions.map((q, i) => (
-                  <div className="row" key={q.id}><span>{i + 1}. {q.text}</span></div>
-                ))}
-              </>
-            )}
-            <CustomQuestionForm label={`Question ${addedQuestions.length + 1}`} value={addQ} onChange={setAddQ} starName={subjectPlayer?.name ?? null} />
-            {addError && <p className="error">{addError}</p>}
-            <div className="action-bar">
-              <button onClick={() => void submitAddMore()} disabled={addBusy}>{addBusy ? "Saving…" : "Add question"}</button>
-              <button onClick={() => void playAddedQuestions()} disabled={addedQuestions.length === 0 || busyAction !== null}>{busyAction === "play-added" ? "Starting…" : `Play these questions${addedQuestions.length > 0 ? ` (${addedQuestions.length})` : ""}`}</button>
+          <div className="modal-backdrop" onClick={() => setAddingMore(false)}>
+            <div className="modal" role="dialog" aria-label="Add more questions" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="modal-close" aria-label="Close" onClick={() => setAddingMore(false)}>×</button>
+              <h2>Add more questions</h2>
+              <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
+              {addedQuestions.length > 0 && (
+                <>
+                  <p>Added so far:</p>
+                  {addedQuestions.map((q, i) => (
+                    <div className="row" key={q.id}><span>{i + 1}. {q.text}</span></div>
+                  ))}
+                </>
+              )}
+              <CustomQuestionForm label={`Question ${addedQuestions.length + 1}`} value={addQ} onChange={setAddQ} starName={subjectPlayer?.name ?? null} />
+              {addError && <p className="error">{addError}</p>}
+              <div className="action-bar">
+                <button onClick={() => void submitAddMore()} disabled={addBusy}>{addBusy ? "Saving…" : "Add question"}</button>
+                <button onClick={async () => { await playAddedQuestions(); setAddingMore(false); }} disabled={addedQuestions.length === 0 || busyAction !== null}>{busyAction === "play-added" ? "Starting…" : `Play these questions${addedQuestions.length > 0 ? ` (${addedQuestions.length})` : ""}`}</button>
+              </div>
             </div>
           </div>
         )}
