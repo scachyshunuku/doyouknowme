@@ -69,6 +69,21 @@ export default function Playground() {
   const [contribDone, setContribDone] = useState(false);
   const [contribQ, setContribQ] = useState(emptyCustomQuestion());
   const [contribError, setContribError] = useState("");
+  // Mock "Add more questions" (Task 32): the host adds questions after the
+  // game finished; they append after the mock bank, and "Play these
+  // questions" jumps to the first one in the host view.
+  const [addingMore, setAddingMore] = useState(false);
+  const [addQ, setAddQ] = useState(emptyCustomQuestion());
+  const [addError, setAddError] = useState("");
+  const [addedMore, setAddedMore] = useState<GameQuestion[]>([]);
+  const playQuestions = useMemo(() => [...QUESTIONS, ...addedMore], [addedMore]);
+  function submitAddMore() {
+    if (!isCustomQuestionComplete(addQ)) return setAddError("Fill in the question and all 4 choices.");
+    if (hasDuplicateChoices(addQ)) return setAddError("Two choices are the same — make each choice different.");
+    setAddError("");
+    setAddedMore((prev) => [...prev, { id: `added-${prev.length}`, game_id: "playground", text: addQ.question.trim(), options: addQ.choices.map((c) => c.trim()) as [string, string, string, string], order_index: QUESTIONS.length + prev.length, is_custom: true, skipped: false, created_by_player_id: null }]);
+    setAddQ(emptyCustomQuestion());
+  }
   // The mock wizard mirrors the real one: a question is only accepted when
   // it is complete and no two choices are the same.
   function submitContrib() {
@@ -98,7 +113,7 @@ export default function Playground() {
     [names, subjectId],
   );
 
-  const question = QUESTIONS[qIndex];
+  const question = playQuestions[qIndex];
   const questionText = renderQuestionText(question.text, { subject: subjectName, host: "Sam" });
   // Same shuffle as the real game (fixed "playground" game id, so the mock
   // order is stable). Q2's mock picks still land on Dog/Cat in this order.
@@ -190,10 +205,10 @@ export default function Playground() {
           <h2>Game setup</h2>
           <div className="field">
             <label>Question bank</label>
-            <div className="bank-pills" role="radiogroup" aria-label="Question bank">
-              <button type="button" role="radio" aria-checked={setupPackageId === "mock-pkg"} className={setupPackageId === "mock-pkg" ? "pill active" : "pill"} onClick={() => setSetupPackageId("mock-pkg")}>Get to Know Me — General (10)</button>
-              <button type="button" role="radio" aria-checked={setupPackageId === "mock-test"} className={setupPackageId === "mock-test" ? "pill active" : "pill"} onClick={() => setSetupPackageId("mock-test")}>Test Package — Test (5)</button>
-              <button type="button" role="radio" aria-checked={setupCustomOnly} className={setupCustomOnly ? "pill active" : "pill"} onClick={() => setSetupPackageId(null)}>Custom only</button>
+            <div className="bank-list" role="radiogroup" aria-label="Question bank">
+              <button type="button" role="radio" aria-checked={setupCustomOnly} className={setupCustomOnly ? "bank-row active" : "bank-row"} onClick={() => setSetupPackageId(null)}><span>Custom only</span></button>
+              <button type="button" role="radio" aria-checked={setupPackageId === "mock-pkg"} className={setupPackageId === "mock-pkg" ? "bank-row active" : "bank-row"} onClick={() => setSetupPackageId("mock-pkg")}><span>Get to Know Me — General</span><span className="count">10 questions</span></button>
+              <button type="button" role="radio" aria-checked={setupPackageId === "mock-test"} className={setupPackageId === "mock-test" ? "bank-row active" : "bank-row"} onClick={() => setSetupPackageId("mock-test")}><span>Test Package — Test</span><span className="count">5 questions</span></button>
             </div>
           </div>
           <div className="field">
@@ -419,7 +434,30 @@ export default function Playground() {
             );
           })}
         </div>
-        <div className="action-bar"><button onClick={() => { setView("lobby"); setQIndex(0); setSubjectId(""); setSkippedIds([]); setGuestPicked(null); setContribSlot(0); setContribDone(false); setContribQ(emptyCustomQuestion()); }}>Play again</button></div>
+        <div className="action-bar">
+          <button className="secondary" onClick={() => { setAddingMore((v) => !v); setAddError(""); }}>{addingMore ? "Back to results" : "Add more questions"}</button>
+          <button onClick={() => { setView("lobby"); setQIndex(0); setSubjectId(""); setSkippedIds([]); setGuestPicked(null); setContribSlot(0); setContribDone(false); setContribQ(emptyCustomQuestion()); setAddingMore(false); setAddedMore([]); setAddQ(emptyCustomQuestion()); }}>Play again</button>
+        </div>
+        {addingMore && (
+          <div className="card">
+            <h2>Add more questions</h2>
+            <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
+            {addedMore.length > 0 && (
+              <>
+                <p>Added so far:</p>
+                {addedMore.map((q, i) => (
+                  <div className="row" key={q.id}><span>{i + 1}. {q.text}</span></div>
+                ))}
+              </>
+            )}
+            <CustomQuestionForm label={`Question ${addedMore.length + 1}`} value={addQ} onChange={setAddQ} starName={subjectName || null} />
+            {addError && <p className="error">{addError}</p>}
+            <div className="action-bar">
+              <button onClick={submitAddMore}>Add question</button>
+              <button onClick={() => { setQIndex(QUESTIONS.length); setGuestPicked(null); setView("host"); }} disabled={addedMore.length === 0}>Play these questions{addedMore.length > 0 ? ` (${addedMore.length})` : ""}</button>
+            </div>
+          </div>
+        )}
         </>
       )}
 

@@ -31,38 +31,41 @@ export default function LobbyCards({ g }: { g: GameState }) {
           <h2>Game setup</h2>
           <div className="field">
             <label>Question bank</label>
-            {/* One tap to pick a bank — no dropdown, no separate checkbox
-                that disables the select above it. "Custom only" is just
-                another choice in the same group. */}
-            <div className="bank-pills" role="radiogroup" aria-label="Question bank">
+            {/* A scrollable list, not pills: pills wrap into a wall once
+                the bank grows past a handful of packages, while a list
+                takes the same bounded height for 3 packages or 30 (it
+                scrolls). "Custom only" is pinned first so it never
+                scrolls out of reach. */}
+            <div className="bank-list" role="radiogroup" aria-label="Question bank">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={customOnly}
+                className={customOnly ? "bank-row active" : "bank-row"}
+                onClick={async () => {
+                  setSetupPackageId(null);
+                  await updateGame({ question_package_id: null });
+                }}
+              >
+                <span>Custom only</span>
+              </button>
               {packages.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   role="radio"
                   aria-checked={effectivePackageId === p.id}
-                  className={effectivePackageId === p.id ? "pill active" : "pill"}
+                  className={effectivePackageId === p.id ? "bank-row active" : "bank-row"}
                   onClick={async () => {
                     setLobbyPackageId(p.id);
                     setSetupPackageId(p.id);
                     await updateGame({ question_package_id: p.id });
                   }}
                 >
-                  {p.name} ({p.questionCount})
+                  <span>{p.name}</span>
+                  <span className="count">{p.questionCount} questions</span>
                 </button>
               ))}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={customOnly}
-                className={customOnly ? "pill active" : "pill"}
-                onClick={async () => {
-                  setSetupPackageId(null);
-                  await updateGame({ question_package_id: null });
-                }}
-              >
-                Custom only
-              </button>
             </div>
             {packages.length === 0 && <p className="muted">{packagesLoaded ? "No question packages found. Run supabase/seed_packages.sql in Supabase." : "Loading packages…"}</p>}
           </div>

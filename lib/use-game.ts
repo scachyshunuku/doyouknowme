@@ -92,6 +92,10 @@ export interface GameState {
   nextQuestion: () => Promise<void>;
   skipQuestion: () => Promise<void>;
   playAgain: () => Promise<void>;
+  // Host-only, finished screen (Task 32): add one more custom question,
+  // and resume the game with the questions added since it finished.
+  addMoreQuestion: (cq: CustomQuestionInput) => Promise<string | null>;
+  playAddedQuestions: () => Promise<void>;
   setJoinName: (v: string) => void;
   setContribQ: (v: CustomQuestionInput) => void;
   setSetupPackageId: (v: string | null) => void;
@@ -751,6 +755,41 @@ export function useGame(code: string): GameState {
     }
   }
 
+  async function playAddedQuestions() {
+    const sb = getSupabase();
+    if (!sb || !game || !isHost || busyAction) return;
+    // The new questions start right after the last one played, so the
+    // resume index is current_question_index + 1. Nothing there yet means
+    // the host has not added a question — stay finished.
+    const firstNew = game.current_question_index + 1;
+    if (firstNew >= questions.length) return;
+    setBusyAction("play-added");
+    try {
+      await sb.from("games").update({ status: "question", current_question_index: firstNew }).eq("id", game.id).eq("status", "finished");
+      await load();
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  /**
+   * The host adds one more question after the game has finished (Task 32).
+   * It is a custom question like any other: saved into game_questions after
+   * the bank (max order_index + 1), so it plays after everything already
+   * played. Returns an error message, or null on success. The game stays
+   * finished until the host taps "Play these questions" (playAddedQuestions).
+   */
+  async function addMoreQuestion(cq: CustomQuestionInput): Promise<string | null> {
+    const sb = getSupabase();
+    if (!sb || !game || !isHost || !me) return "Only the host can add questions.";
+    if (!isCustomQuestionComplete(cq)) return "Fill in the question and all 4 choices.";
+    if (hasDuplicateChoices(cq)) return "Two choices are the same — make each choice different.";
+    const err = await insertCustomQuestion(sb, game.id, cq, me.id);
+    if (err) return err;
+    await load();
+    return null;
+  }
+
   async function skipQuestion() {    const sb = getSupabase();
     if (!sb || !game || !isHost || !currentQuestion || busyAction) return;
     setBusyAction("skip");
@@ -843,6 +882,8 @@ export function useGame(code: string): GameState {
     nextQuestion,
     skipQuestion,
     playAgain,
+    addMoreQuestion,
+    playAddedQuestions,
     setJoinName,
     setContribQ,
     setSetupPackageId,

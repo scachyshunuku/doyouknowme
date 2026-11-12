@@ -56,15 +56,18 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 /* The question heading of a custom-question form: bigger and brighter than
    the choice labels, so the question reads as the section, not a field. */
 .form-section { display: block; font-size: 18px; font-weight: 700; color: #fff; margin: 12px 0 4px; }
-/* Game setup controls: pick a bank by tapping a pill (no dropdown, no
-   checkbox that disables the select above it), set the per-guest count
+/* Game setup controls: pick a bank from a scrollable list (no dropdown,
+   no checkbox that disables the select above it), set the per-guest count
    with a stepper, and flip "Require…" with a real toggle switch. */
-/* Bank pills: one tap per bank, plus "Custom only" as just another choice.
-   The selected pill is the accent fill; the rest are dark, so the current
-   bank reads at a glance. */
-.bank-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.bank-pills .pill { width: auto; min-height: 44px; margin-top: 0; padding: 10px 16px; border: 2px solid var(--border-strong); border-radius: 999px; background: #12152a; color: var(--text); font-size: 15px; font-weight: 600; box-shadow: none; }
-.bank-pills .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Bank list: one row per bank, plus "Custom only" pinned first. A list —
+   not pills — because pills wrap into a wall once the bank grows past a
+   handful of packages, while a list takes the same bounded height for 3
+   packages or 30 (it scrolls). The selected row is the accent fill. */
+.bank-list { display: flex; flex-direction: column; gap: 4px; max-height: 212px; overflow-y: auto; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 12px; padding: 4px; }
+.bank-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 44px; margin-top: 0; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.bank-row .count { color: var(--text-muted); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.bank-row.active { background: var(--accent); color: #fff; }
+.bank-row.active .count { color: rgba(255, 255, 255, 0.85); }
 /* The per-guest row: label on the left, stepper on the right. */
 .setup-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #12152a; font-size: 16px; color: var(--text); }
 .stepper { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }

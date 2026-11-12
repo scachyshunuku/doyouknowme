@@ -2,16 +2,36 @@
 // One stage of the game, rendered from the shared game state (useGame).
 // The status guard lives here, so the page renders every stage
 // unconditionally and each card decides whether it shows.
+import { useState } from "react";
 import type { GameState } from "../../lib/use-game";
 import { pointsLabel } from "../../lib/format";
 import { computeRoundResult } from "../../lib/scoring";
 import { shuffledOptions } from "../../lib/shuffle";
 import { renderQuestionText } from "../../lib/template";
+import { emptyCustomQuestion } from "../../lib/custom-questions";
+import type { CustomQuestionInput } from "../../lib/custom-questions";
+import CustomQuestionForm from "../CustomQuestionForm";
 import ExpandableText from "../ExpandableText";
 
 export default function FinalCard({ g }: { g: GameState }) {
-  const { game, players, questions, answers, myPlayerId, skippedIds, isHost, totals, subjectPlayer, hostPlayer, leaderboard, matchesLeaderboard, busyAction, playAgain } = g;
+  const { game, players, questions, answers, myPlayerId, skippedIds, isHost, totals, subjectPlayer, hostPlayer, leaderboard, matchesLeaderboard, busyAction, playAgain, addMoreQuestion, playAddedQuestions } = g;
+  // Host-only "Add more questions" (Task 32): the form lives on the
+  // finished screen, next to Play again. Added questions are the ones
+  // past the last one played (current_question_index), so the list is
+  // derived from the data — it survives a reload and a cancel.
+  const [addingMore, setAddingMore] = useState(false);
+  const [addQ, setAddQ] = useState<CustomQuestionInput>(emptyCustomQuestion());
+  const [addError, setAddError] = useState("");
+  const [addBusy, setAddBusy] = useState(false);
   if (!game) return null;
+  const addedQuestions = game.status === "finished" ? questions.slice(game.current_question_index + 1) : [];
+  async function submitAddMore() {
+    setAddBusy(true); setAddError("");
+    const err = await addMoreQuestion(addQ);
+    setAddBusy(false);
+    if (err) return setAddError(err);
+    setAddQ(emptyCustomQuestion());
+  }
   return (
     <>
       {game.status === "finished" && (
@@ -76,7 +96,32 @@ export default function FinalCard({ g }: { g: GameState }) {
             );
           })}
         </div>
-        {isHost && <div className="action-bar"><button onClick={playAgain} disabled={busyAction !== null}>{busyAction === "replay" ? "Starting a new game…" : "Play again"}</button></div>}
+        {isHost && (
+          <div className="action-bar">
+            <button className="secondary" onClick={() => { setAddingMore((v) => !v); setAddError(""); }}>{addingMore ? "Back to results" : "Add more questions"}</button>
+            <button onClick={playAgain} disabled={busyAction !== null}>{busyAction === "replay" ? "Starting a new game…" : "Play again"}</button>
+          </div>
+        )}
+        {isHost && addingMore && (
+          <div className="card">
+            <h2>Add more questions</h2>
+            <p>These play after everything above — the game picks up where it left off, with the new questions added to the end.</p>
+            {addedQuestions.length > 0 && (
+              <>
+                <p>Added so far:</p>
+                {addedQuestions.map((q, i) => (
+                  <div className="row" key={q.id}><span>{i + 1}. {q.text}</span></div>
+                ))}
+              </>
+            )}
+            <CustomQuestionForm label={`Question ${addedQuestions.length + 1}`} value={addQ} onChange={setAddQ} starName={subjectPlayer?.name ?? null} />
+            {addError && <p className="error">{addError}</p>}
+            <div className="action-bar">
+              <button onClick={() => void submitAddMore()} disabled={addBusy}>{addBusy ? "Saving…" : "Add question"}</button>
+              <button onClick={() => void playAddedQuestions()} disabled={addedQuestions.length === 0 || busyAction !== null}>{busyAction === "play-added" ? "Starting…" : `Play these questions${addedQuestions.length > 0 ? ` (${addedQuestions.length})` : ""}`}</button>
+            </div>
+          </div>
+        )}
         {/* The host already replayed and this client missed the automatic
             follow (e.g. its live connection dropped): offer the new game
             instead of leaving it stranded on the finished screen. */}

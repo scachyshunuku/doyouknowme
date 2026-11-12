@@ -498,3 +498,70 @@ William: "leaderboard should have 'player' not 'name' to be consistent with the 
 - [x] `components/game/RunningLeaderboard.tsx` and both playground leaderboard asides: the heading is now "Player", matching the Final leaderboard / "Matches with {Star}" tables (which already say "Player"). The rank heading stays "Rank".
 - [x] Verified: `npm run build` passes.
 - **Status**: PUSHED Nov 11 as commit `b7f0acd` and VERIFIED LIVE (live chunk page-673c03bb213c8054.js contains "Player", 0 ">Name<" in the leaderboard).
+
+### Task 27: Question bank no longer picked on "Host a game" (Nov 12, early morning)
+
+William: "question bank doesnt need to be specified in 'host a game' anymore since its inside"
+
+- [x] `app/page.tsx`: the create form is name-only — the package state, the package loading, and the select are removed. `createGame` inserts `question_package_id: null`; the bank is picked in the lobby's Game setup card (Task 28). The intro copy now reads "The host starts a game, picks the question bank and the star in the lobby…", and How-it-works step 1 matches.
+- [x] Verified: `npm run build` passes.
+- **Status**: PUSHED Nov 12 as commit `b99ce47` (with Task 28) and VERIFIED LIVE (live chunk page-95f17dc9b3a8f2a3.js contains "Custom only"; the home form has no package picker).
+
+### Task 28: Game setup card redesign — pills, stepper, toggle switch (Nov 12, early morning)
+
+William, with a screenshot of the old setup card: "this game setup design still sucks. can you review it and fix the look and ux"
+
+- [x] `components/game/LobbyCards.tsx` Game setup card: the question bank is now a pill group (`.bank-pills`, flex wrap, gap 8px) — one `.pill` button per package ("Name (N)") plus a "Custom only" pill (`role="radiogroup"` / `role="radio"` + `aria-checked`). Active pill = accent fill + white text; inactive = dark with a 2px border-strong. This replaces BOTH the old select and the "Custom questions only" checkbox (custom-only is just another pill).
+- [x] Custom questions: a bordered `.setup-row` ("Per guest") with a **stepper** — `.stepper` with − / value / + buttons (40px, radius 10px), value `.stepper-value` (20px, 700, white, min-width 36px); minus disabled at 0, plus disabled at 10. "Require each guest to add their questions" is a **toggle switch**: `.switch-row` + `.switch` button (`role="switch"`, 52×30px, radius 999px, track #2c3152, `.on` → accent; `.knob` 22px white circle slides left 4px → 26px).
+- [x] `app/globals.css`: `.checkbox-row` removed (nothing uses checkboxes anymore). Note: `.muted` was accidentally deleted in the same edit and immediately re-added — it is live and used by LobbyCards/ContributeCard/playground.
+- [x] `app/playground/page.tsx`: the mock Game setup card mirrors the real one (pills, stepper, switch).
+- [x] Verified: `npm run build` passes; screenshot `video-test/shot-setup-card3.png` (playground lobby view; pills with "Get to Know Me — General (10)" active, stepper at 2, switch off).
+- **Status**: PUSHED Nov 12 as commit `b99ce47` (with Task 27) and VERIFIED LIVE (live CSS contains "bank-pills" and "stepper"; live chunk contains "Custom only").
+
+### Task 29: Final tables are single-metric (Nov 12, early morning)
+
+William: "for the final leaderboard for 'Final leaderboard' and 'matches with {star}' remove the other column. It should be final leaderboard with pts and matches with matches"
+
+- [x] `components/game/FinalCard.tsx`: the Final leaderboard table now shows Rank (#) / Player / Points only (the Matches `<th>`/`<td>` removed); the "Matches with {star}" table now shows # / Player / Matches only (the Points `<th>`/`<td>` removed). This supersedes Task 21, whose entry said the final tables "keep their Matches column".
+- [x] `app/playground/page.tsx`: both final tables mirrored identically.
+- [x] Verified: `npm run build` passes; playground final view headers read ["#","Player","Points"] and ["#","Player","Matches"]; screenshot `video-test/shot-final-tables2.png` (Final leaderboard, Points only).
+- **Status**: PUSHED Nov 12 as commit `619d284` (with Tasks 30–31) and VERIFIED LIVE (live chunk page-95f17dc9b3a8f2a3.js).
+
+### Task 30: Duplicate options are refused when creating a question (Nov 12, early morning)
+
+William: "right now you are allowed a duplicate option when creating questions. please add validation for that"
+
+- [x] `lib/custom-questions.ts`: new `hasDuplicateChoices(cq)` — two choices count as the same when they match after trimming and lower-casing, so "Sushi" and " sushi " are a duplicate. Empty choices are skipped (completeness catches those). `insertCustomQuestion` refuses a duplicate at the insert (backstop), returning "Two choices are the same — make each choice different."
+- [x] `lib/use-game.ts` `submitContribSlot`: checks `hasDuplicateChoices` right after the completeness check, before any database call, so the error shows at once instead of after the round-trips.
+- [x] `app/playground/page.tsx`: the mock wizard mirrors the real one — a `submitContrib` handler validates completeness and duplicates and shows the error (`.error`); Skip still skips without validating.
+- [x] Verified: `npm run build` passes; Playwright (`video-test/shot-duplicate-and-press.mjs`) on the playground: typing "Sushi" and " sushi " shows "Two choices are the same — make each choice different.", and fixing the duplicate advances the wizard to slot 2.
+- **Status**: PUSHED Nov 12 as commit `619d284` (with Tasks 29, 31) and VERIFIED LIVE (live chunk page-95f17dc9b3a8f2a3.js contains "Two choices are the same").
+
+### Task 31: Every button answers a tap (Nov 12, early morning)
+
+William: "i want feedback on button clicks for every button. I know some have some but not all of them"
+
+- [x] `app/globals.css`: `button:active { transform: scale(0.97); }` — every button presses in the moment it is touched, so no button ever feels dead while its action lands. This is the instant layer; it needs no round-trip.
+- [x] The host advance buttons had no working feedback (Reveal results, Skip question, Next question / Show final leaderboard, Play again, Start now) — they fired an async round-trip with no label change and no guard against a double-tap. `lib/use-game.ts` now has a `busyAction` state ("results" | "next" | "skip" | "replay" | "force-start"), set at the start of `showResults`, `nextQuestion`, `skipQuestion`, `playAgain`, and `finishContribution` (the host's "Start now"), cleared in a `finally` after `load()`. Each function also returns early while one is in flight, so a double-tap cannot fire it twice (Play again previously could race and create two new games).
+- [x] `components/game/QuestionCard.tsx`, `ResultsCard.tsx`, `FinalCard.tsx`, `ContributeCard.tsx`: the button for the in-flight action shows a "…" label ("Revealing…", "Skipping…", "Loading…", "Starting a new game…", "Starting…") and every advance button is disabled while any action is in flight. The buttons that already had feedback keep theirs (Start game "Starting…", Join "Joining…", Make star "Picking…", Copy invite "Copied", wizard "Saving…", option picks → waiting screen).
+- [x] Verified: `npm run build` passes; Playwright (`video-test/shot-duplicate-and-press.mjs`): holding a button down gives computed transform `matrix(0.97, 0, 0, 0.97, 0, 0)`.
+- **Status**: PUSHED Nov 12 as commit `619d284` (with Tasks 29–30) and VERIFIED LIVE (live CSS contains "button:active"; live chunk contains "Revealing" and "Starting a new game").
+
+### Task 32: Host adds more questions on the final screen (Nov 12, early morning)
+
+William: "At the end. Can you add an option to add more questions as the host only? Alongside play again"
+
+- [x] `lib/use-game.ts`: `addMoreQuestion(cq)` (host-only) validates completeness and duplicates (same rules as the contribution wizard, Task 30) and inserts the question into `game_questions` after the bank via `insertCustomQuestion` (author = the host), then `load()`. Returns an error string or null. `playAddedQuestions()` resumes the game: status "finished" → "question" at `current_question_index + 1` (the first question past the last one played), status-guarded so a stale tab cannot resume a game that already moved on, and guarded by a `busyAction` ("play-added") so a double-tap cannot fire it twice. Both are exposed on `GameState`.
+- [x] `components/game/FinalCard.tsx`: the host's action bar now has "Add more questions" (secondary) alongside "Play again". Tapping it opens a card with the same `CustomQuestionForm`, a list of the questions added so far, an "Add question" button ("Saving…" while it saves), and a "Play these questions (N)" button (disabled until at least one is added; "Starting…" while it resumes). The added list is derived, not stored: `questions.slice(game.current_question_index + 1)` — the questions past the last one played — so it survives a reload and a cancel, and if the host reopens the form after adding, the earlier questions are still counted. The form explains "These play after everything above — the game picks up where it left off, with the new questions added to the end." Non-hosts see no add-more UI.
+- [x] `app/playground/page.tsx`: the mock final view mirrors it — "Add more questions" + form + added list + "Play these questions (N)", which jumps to the host view at the first added question (the mock question list is `[...QUESTIONS, ...addedMore]`).
+- [x] Verified: `npm run build` passes; full local play-through (`video-test/verify-add-more.mjs`, game Y3CR26): host creates (name-only), picks Quick Test from the bank list, per-guest 0, 2 guests join, star picked, 3 bank questions played to the final screen; host adds "What is Sam's favourite late-night snack?", it lists under "Added so far", "Play these questions" resumes at "Question 4 of 4", guests answer, and the game finishes again with Q4 in the Answer review (screenshot `video-test/shot-add-more-final.png`).
+- **Status**: implemented and verified locally; push pending the user's approval (the GitHub push approval timed out twice while the user was on mobile).
+
+### Task 28 revision: Bank picker is a scrollable list, not pills (Nov 12, early morning)
+
+William: "Also for pills, I'm not too sure of this design as our question bank grows much larger"
+
+- [x] The pill group does not scale: pills wrap into a wall once the bank grows past a handful of packages. Replaced with a scrollable list. `components/game/LobbyCards.tsx` and `app/playground/page.tsx`: the bank is now a `.bank-list` (a bordered container, `max-height: 212px`, `overflow-y: auto`) of `.bank-row` buttons — one row per package with its name and "N questions" count, plus "Custom only" pinned first so it never scrolls out of reach. The selected row is the accent fill. Same `role="radiogroup"` / `role="radio"` + `aria-checked` semantics and the same `updateGame` persistence as the pills.
+- [x] `app/globals.css`: `.bank-pills` / `.bank-pills .pill` rules removed; `.bank-list` / `.bank-row` / `.bank-row .count` / `.bank-row.active` added. The generic `.pill` badge (answered-count, QuestionCard) is untouched.
+- [x] Verified: `npm run build` passes; the bank list was exercised in the Task 32 play-through (host picked Quick Test from the list) and screenshot `video-test/shot-bank-list.png` (playground lobby; "Custom only" first, "Get to Know Me — General — 10 questions" active, "Test Package — Test — 5 questions").
+- **Status**: implemented and verified locally; push pending the user's approval (same pending push as Task 32).
