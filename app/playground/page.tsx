@@ -263,7 +263,7 @@ export default function Playground() {
           <aside className="card leaderboard-side">
             <h2>Leaderboard</h2>
             <table className="leaderboard-table">
-              <thead><tr><th className="rank">Rank</th><th>Name</th><th className="num">Points</th></tr></thead>
+              <thead><tr><th className="rank">Rank</th><th>Player</th><th className="num">Points</th></tr></thead>
               <tbody>
                 {leaderboard.map((p, i) => (
                   <tr key={p.id}>
@@ -333,7 +333,7 @@ export default function Playground() {
           <aside className="card leaderboard-side">
             <h2>Leaderboard</h2>
             <table className="leaderboard-table">
-              <thead><tr><th className="rank">Rank</th><th>Name</th><th className="num">Points</th></tr></thead>
+              <thead><tr><th className="rank">Rank</th><th>Player</th><th className="num">Points</th></tr></thead>
               <tbody>
                 {leaderboard.map((p, i) => (
                   <tr key={p.id}>

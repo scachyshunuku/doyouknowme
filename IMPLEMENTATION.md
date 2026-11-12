@@ -409,3 +409,84 @@ William, from a screenshot of game JH9T9V: "lobby has extra margin at the bottom
 - [x] The last player row's own bottom padding (14px) stacked on the card's bottom padding (16px), leaving ~30px of dead space after the last player. Added `.player-row:last-child { padding-bottom: 0; }` so the last row sits flush on the card's padding, matching the top (the heading sits on the same 16px). Measured in the playground lobby: gap after the last player is now 17px (16px card padding + 1px border), down from ~31px.
 - [x] Verified: `npm run build` passes.
 - **Status**: PUSHED Nov 11 as commit `f35fe6a` and VERIFIED LIVE (live CSS contains the "player-row:last-child" rule).
+
+### Task 18: Game setup card redesign (Nov 11, evening)
+
+William, from a screenshot of game JH9T9V: "Question package" -> question bank; "the dropdown arrow is clipped on the right again"; "the checkbox looks ugly and not in the theme of our colour"; "Custom only" should be "Custom questions only"; "Custom questions per guest"; "for 0, don't need to add the extra '--- no custom questions'"; "the layout overall can have a UX / design improvement". Plus: guests don't need to see "Guests add 1 question each before the game starts." — "That doesnt even get updated as the host changes the configs".
+
+- [x] `app/globals.css`: custom select arrow — `select { appearance: none; background-image: url("data:image/svg+xml,…chevron stroke %23c9cbe0…"); background-position: right 16px center; padding-right: 48px; }` (replaces the clipped native arrow). Themed checkbox — `.checkbox-row input[type="checkbox"] { appearance: none; width: 22px; height: 22px; border: 2px solid var(--border-strong); border-radius: 6px; background: #12152a; }`, `:checked` → accent (#6c5ce7) fill + white "✓" via `::after`, `:disabled` dimmed. `.checkbox-row` is now a toggle row (padding 12px, border, radius 10px, background #12152a). New `.field` groups (20px spacing) and `.form-section` (18px, 700, #fff) for the wizard heading.
+- [x] `components/game/LobbyCards.tsx`: Game setup card wrapped in `.field` groups; label "Question bank"; checkbox "Custom questions only"; label "Custom questions per guest"; limit options render plain `{i}` (0 is just "0"); the "Require each guest to add their questions" label is no longer truncated. The "Guests add N question(s) each…" line now renders only when `isHost && effectiveLimit > 0`.
+- [x] `app/page.tsx` home create form: "Question package" → "Question bank". Playground setup card mirrored (fields, labels, plain "0").
+- [x] Verified: `npm run build` passes; local playground screenshots confirm the chevron is visible and unclipped, the toggle rows, the themed checkbox boxes, and the new labels.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 19–25) and VERIFIED LIVE (live chunk page-24cd8ac5d007dfd0.js; live CSS contains the custom select arrow and themed checkbox rules).
+
+### Task 19: Contribution wizard — copy, expanding inputs, no {star} template for customs (Nov 11, evening)
+
+William: "for adding questions you don't need to have 'You can skip any of them.' line"; "Can Question 1 of 1 be in a different size / style a bit bigger than the choices headings?"; "the input text boxes should have word wrap and expand rather than go on forever on one line"; "also for custom questions, since we know who the star is, we don't need the {star} header thing or even use it. We can show them as is because people will just put the actual name".
+
+- [x] `components/game/ContributeCard.tsx`: the "You can skip any of them." paragraph is gone; now only `{!questionsRequired && customOnly && (<p>The game needs at least one question to start.</p>)}`. Playground contribute view: the line removed too. ContributeCard passes `starName={subjectPlayer?.name ?? null}` to CustomQuestionForm.
+- [x] `components/CustomQuestionForm.tsx` rewritten: internal `ExpandingTextarea` (textarea rows={1}; useEffect on value sets height auto → scrollHeight); question label has `className="form-section"`; new optional prop `starName`; question placeholder is `e.g. What is ${starName}'s favourite food?` when starName is given, else "e.g. What's the star's favourite food?"; choices keep no placeholder; maxLength still 300/150 from lib constants. Playground passes `starName={subjectName || null}`.
+- [x] `app/globals.css`: `textarea` styled like inputs (width 100%, padding 12px, radius 10px, border var(--border-strong), background #12152a, font-size 16px, font-family inherit, line-height 1.5, resize: none, overflow: hidden); textarea added to the focus rule.
+- [x] Literal rendering for customs: `lib/use-game.ts` `questionText` = `currentQuestion.is_custom ? currentQuestion.text : renderQuestionText(...)`; `components/game/FinalCard.tsx` reviewText uses the same conditional. Bank questions still templated.
+- [x] Verified: `npm run build` passes; local playground screenshots confirm the bigger "Question 1 of 2" heading and the expanding textarea (a long question wraps and the box grows).
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18, 20–25) and VERIFIED LIVE (live chunk page-24cd8ac5d007dfd0.js).
+
+### Task 20: Wizard finish flicker fix (Nov 11, evening)
+
+William: "when you tap continue or skip on the add question dialog. It disables and enables right away with a blank question before figuring out that we are done and move to the next screen. fix that"
+
+- [x] Root cause: `finishMyContribution` did the DB update first and only marked the player done locally afterwards, so on the last slot the wizard sat on a blank question while the round-trips landed — and the early `setContribBusy(false)` re-enabled the buttons in that window.
+- [x] Fix (`lib/use-game.ts`): `finishMyContribution` now marks the player done locally FIRST (`setPlayers` + clears the form + drops the wizard position) before the DB update, so the card switches to "✓ You're done" the moment the button is tapped; the buttons stay disabled (`contribBusy`) until `load()` + `finishContribution()` finish at the very end. If the DB update fails, the next `load()` re-reads the real state, the wizard comes back, and the error is shown.
+- [x] `submitContribSlot` / `skipContribSlot`: when `finishAfter` is true they no longer set contribBusy(false) after `finishMyContribution()`; the non-finish branch still advances the slot and sets busy false.
+- [x] Verified: `npm run build` passes; full local play-through (`video-test/verify-replay.mjs`, game 8VR96A): after tapping Complete on the last slot the button never re-enabled on a blank wizard (checked every 200ms for 3s) for either guest, and both reached "You're done" / the question screen.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18, 19, 21–25) and VERIFIED LIVE (live chunk page-24cd8ac5d007dfd0.js).
+
+### Task 21: Leaderboard — points only, with Rank / Name / Points headings (Nov 11, evening)
+
+William, from a Results screenshot: "for the leaderboard, let's just show the points and let's have headings (name, points) rather than have 'pt' and 'pts'. the alignment is off if we keep that", then "oh and rank".
+
+- [x] `components/game/RunningLeaderboard.tsx` rewritten as a table (reusing `.leaderboard-table`): headings Rank / Name / Points, rows show the rank number, the name (★ for the star), and the bare points number — no "pt"/"pts" suffix and no matches column. The Final leaderboard tables keep their Matches column (there is a separate "Matches with {Star}" table for that), but their Points column now shows the bare number too (no "pts").
+- [x] `app/playground/page.tsx`: both leaderboard asides rewritten as the same table; the Final tables' Points column shows the bare number. `matchesLabel` import removed from both files (unused); `pointsLabel` stays for "Points this round" (+N pts) and the review-points.
+- [x] `app/globals.css`: the old `.leaderboard-side .row` / `.score` / `.pts` / `.matches` rules deleted (nothing uses them now); the rank column widened 36px → 56px so the "RANK" heading fits without running into "NAME".
+- [x] Verified: `npm run build` passes; local playground screenshot confirms the Rank / Name / Points table with plain numbers and aligned columns.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18–20, 22–25) and VERIFIED LIVE (live chunk page-24cd8ac5d007dfd0.js contains "leaderboard-table" and "Rank"; live CSS contains `th.rank{width:56px}`).
+
+### Task 22: Long unbroken text wraps instead of blowing out past the card (Nov 11, evening)
+
+William, from a screenshot of game JH9T9V (option A was a long unbroken "aaa…sdfsdf…ddd…" string running off the card): "a very long text is broken. it is not wrapped"
+
+- [x] Root cause: a long string with no spaces has no wrap opportunity, so it overflowed. `overflow-wrap: break-word` alone was not enough — the grid columns (`1fr`, implicit `auto`) and the grid items (`min-width: auto`) sized themselves by the word's min-content, so the button itself grew wider than the card.
+- [x] Fix (`app/globals.css`): `overflow-wrap: break-word` on `.question-text`, `.opt-text` (guest buttons, host tiles, "You picked"), `.expandable-wrap`, `.result-option .row > span:first-child` (with `min-width: 0`), and `.review-answer` (with `min-width: 0`); the grids now use `minmax(0, 1fr)` — `.options { grid-template-columns: minmax(0, 1fr) }`, `.host-options { grid-template-columns: repeat(2, minmax(0, 1fr)) }` (and the single-column / long-options / mobile variants), `.review-row { grid-template-columns: 150px minmax(0, 1fr) auto }` — and the buttons/tiles got `min-width: 0` so they can shrink below a long word.
+- [x] Verified: `npm run build` passes; local playground measurement with a 126-char unbroken string injected into option A: the button's scrollWidth == clientWidth (894) and the card's scrollWidth == clientWidth (926) — no blowout. Screenshots confirm the string wraps across two lines inside the button and the card stays in bounds.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18–21, 23–25) and VERIFIED LIVE (live CSS contains "overflow-wrap" and "minmax(0,1fr)").
+
+### Task 23: Play again moves everyone into the new game's lobby (Nov 11, evening)
+
+William: "hitting 'Play again' doesn't put everyone back into the game lobby of a new game."
+
+- [x] Before this, Play again created a new game with only the host in it; guests had to re-join via a new link the host shared. Now the old game points at the new one and every guest's client follows it on its own.
+- [x] Migration `supabase/migrations/0012_replay_code.sql` — applied live and verified: `games.replay_code text` (nullable, CHECK `^[A-Z2-9]{6}$` or null). Additive, so the live client (which did not read it yet) was unaffected.
+- [x] `lib/types.ts`: `Game` gains `replay_code: string | null`.
+- [x] `lib/use-game.ts` `playAgain`: after creating the new game + host player + session, it updates the OLD game row with `replay_code = newCode` (best-effort — if it fails the host still lands in the new game and can share the link), then navigates. If `game.replay_code` is already set (host still on the old page), it just navigates to the new game instead of creating a second one.
+- [x] Guest auto-follow: a `useEffect` watches `game.replay_code`; when set and the client is not the host, it navigates to `/game/<newCode>?replayFrom=<oldCode>` (guarded by a ref so it fires once). The host already navigated in `playAgain`, so only non-hosts follow.
+- [x] Guest auto-join: a `useEffect` on the new game page reads the old session from localStorage, then reads the old player's CURRENT role from the DB (the session was written at join time as "guest", so a star picked later would otherwise re-join as a guest — this was caught in the first play-through, where the ★ was lost) and inserts a player row with that name and role, saves the session for the new code, and — if the role is "subject" — points the new game's `subject_player_id` at them, so the old star stays the star and the host can just hit Start. Runs once; a session for the new code (or a reload after joining) skips it. After joining it drops the `?replayFrom` param.
+- [x] Fallback: `components/game/FinalCard.tsx` shows a "Continue to the new game" button to non-hosts when `game.replay_code` is set, for a client that missed the automatic follow (e.g. its live connection dropped).
+- [x] Verified: `npm run build` passes; full local play-through (`video-test/verify-replay.mjs`, game 8VR96A → new game RXXKRR, 5 rounds): host, Sam, and Julie all landed in the new lobby, Sam still the star (★), host lobby lists all three. The forwarding proxy (`video-test/forward-proxy.js` on 127.0.0.1:18080) + context-level proxy with `bypass: "localhost,127.0.0.1"` is needed for Playwright to reach both the local dev server and Supabase.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18–22, 24, 25) and VERIFIED LIVE (live chunk page-24cd8ac5d007dfd0.js contains "replayFrom" and "Continue to the new game").
+
+### Task 24: Drop ?join=1 from the copied invite link (Nov 11, evening)
+
+William: "also why does 'copy link' include a ?join=1? do we need that?"
+
+- [x] No — the join card shows automatically for anyone who opens a game with no session for it, so a new guest sees the name form either way. `?join=1` only forced players who were already in the game to see the join card ("Continue as X") instead of resuming straight into it.
+- [x] `lib/use-game.ts` `copyInvite` now copies the plain URL (`/game/<CODE>`). The `joinParam` / `resumeGame` mechanism is removed (`showJoin = loaded && !!game && !me`), and `components/game/JoinCard.tsx` is now just the name form (its "already in this game" branch is unreachable once the join card only shows when there is no player).
+- [x] Verified: `npm run build` passes; the replay play-through joins guests via the clean URL (`/game/<CODE>`, no param) and the join card shows.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18–23, 25) and VERIFIED LIVE (live chunk page-24cd8ac5d007dfd0.js).
+
+### Task 25: Answer review — player names left-aligned (Nov 11, evening)
+
+William, from a screenshot of the Answer review: "i think for these answer review, the player name should be left aligned"
+
+- [x] `app/globals.css`: `.review-name { text-align: right; … }` → `text-align: left;` (the names now sit at the left edge of their column, in line with the Q1/Q2/Q3 headings and the left-aligned answers; the points stay right-aligned).
+- [x] Verified: `npm run build` passes.
+- **Status**: PUSHED Nov 11 as commit `bd9f5c5` (with Tasks 18–24) and VERIFIED LIVE (live CSS contains `.review-name{text-align:left;…}`).

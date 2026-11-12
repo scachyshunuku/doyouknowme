@@ -16,7 +16,7 @@ export default function RunningLeaderboard({ g }: { g: GameState }) {
             <p>No players yet.</p>
           ) : (
             <table className="leaderboard-table">
-              <thead><tr><th className="rank">Rank</th><th>Name</th><th className="num">Points</th></tr></thead>
+              <thead><tr><th className="rank">Rank</th><th>Player</th><th className="num">Points</th></tr></thead>
               <tbody>
                 {runningLeaderboard.map((p, i) => (
                   <tr key={p.id}>
