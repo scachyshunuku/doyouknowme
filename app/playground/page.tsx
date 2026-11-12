@@ -7,7 +7,7 @@ import { pointsLabel } from "../../lib/format";
 import { leaderboardPlayers, sortByMatches, sortByPoints } from "../../lib/leaderboard";
 import CustomQuestionForm from "../../components/CustomQuestionForm";
 import ExpandableText from "../../components/ExpandableText";
-import { emptyCustomQuestion } from "../../lib/custom-questions";
+import { emptyCustomQuestion, hasDuplicateChoices, isCustomQuestionComplete } from "../../lib/custom-questions";
 import type { Answer, GameQuestion, Player } from "../../lib/types";
 
 // Design playground: preview every view with mock data, no Supabase, no real
@@ -68,6 +68,16 @@ export default function Playground() {
   const [contribSlot, setContribSlot] = useState(0);
   const [contribDone, setContribDone] = useState(false);
   const [contribQ, setContribQ] = useState(emptyCustomQuestion());
+  const [contribError, setContribError] = useState("");
+  // The mock wizard mirrors the real one: a question is only accepted when
+  // it is complete and no two choices are the same.
+  function submitContrib() {
+    if (!isCustomQuestionComplete(contribQ)) return setContribError("Fill in the question and all 4 choices.");
+    if (hasDuplicateChoices(contribQ)) return setContribError("Two choices are the same — make each choice different.");
+    setContribError("");
+    setContribQ(emptyCustomQuestion());
+    if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); }
+  }
   const CONTRIB_LIMIT = 2;
   // Mock lobby setup (mirrors the real Game setup card).
   const [setupPackageId, setSetupPackageId] = useState<string | null>("mock-pkg");
@@ -229,9 +239,10 @@ export default function Playground() {
               <>
                 <h2>Add your questions</h2>
                 <CustomQuestionForm label={`Question ${contribSlot + 1} of ${CONTRIB_LIMIT}`} value={contribQ} onChange={setContribQ} starName={subjectName || null} />
+                {contribError && <p className="error">{contribError}</p>}
                 <div className="action-bar">
-                  <button onClick={() => { setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>{contribSlot + 1 >= CONTRIB_LIMIT ? "Complete" : "Next question"}</button>
-                  <button className="secondary" onClick={() => { setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>Skip</button>
+                  <button onClick={submitContrib}>{contribSlot + 1 >= CONTRIB_LIMIT ? "Complete" : "Next question"}</button>
+                  <button className="secondary" onClick={() => { setContribError(""); setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>Skip</button>
                 </div>
               </>
             )}
@@ -355,10 +366,10 @@ export default function Playground() {
         <div className="card">
           <h2>Final leaderboard</h2>
           <table className="leaderboard-table">
-            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
+            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th></tr></thead>
             <tbody>
               {leaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -366,10 +377,10 @@ export default function Playground() {
         <div className="card">
           <h2>Matches with {subjectName || "Alex"}</h2>
           <table className="leaderboard-table">
-            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
+            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th></tr></thead>
             <tbody>
               {matchesLeaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>

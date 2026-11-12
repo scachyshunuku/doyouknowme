@@ -7,7 +7,7 @@ import { pointsLabel } from "../../lib/format";
 import ExpandableText from "../ExpandableText";
 
 export default function ResultsCard({ g }: { g: GameState }) {
-  const { game, players, questions, isHost, currentQuestion, currentAnswers, myAnswer, round, subjectPlayer, questionText, sortedResultOptions, maxResultCount, nextQuestion } = g;
+  const { game, players, questions, isHost, currentQuestion, currentAnswers, myAnswer, round, subjectPlayer, questionText, sortedResultOptions, maxResultCount, busyAction, nextQuestion } = g;
   if (!game) return null;
   const longQuestion = questionText.length > 150;
   return (
@@ -41,7 +41,7 @@ export default function ResultsCard({ g }: { g: GameState }) {
               </div>
             );
           })}
-          {isHost && <div className="action-bar"><button onClick={nextQuestion}>{game.current_question_index + 1 >= questions.length ? "Show final leaderboard" : "Next question"}</button></div>}
+          {isHost && <div className="action-bar"><button onClick={nextQuestion} disabled={busyAction !== null}>{busyAction === "next" ? "Loading…" : game.current_question_index + 1 >= questions.length ? "Show final leaderboard" : "Next question"}</button></div>}
           {!isHost && <p>Waiting for the host…</p>}
         </div>
       )}

@@ -6,7 +6,7 @@ import type { GameState } from "../../lib/use-game";
 import CustomQuestionForm from "../CustomQuestionForm";
 
 export default function ContributeCard({ g }: { g: GameState }) {
-  const { game, players, me, contribSlot, contribQ, contribBusy, contribError, isHost, customOnly, questionsRequired, effectiveLimit, finishContribution, submitContribSlot, skipContribSlot, setContribQ, subjectPlayer } = g;
+  const { game, players, me, contribSlot, contribQ, contribBusy, contribError, isHost, customOnly, questionsRequired, effectiveLimit, busyAction, finishContribution, submitContribSlot, skipContribSlot, setContribQ, subjectPlayer } = g;
   if (!game) return null;
   return (
     <>
@@ -22,7 +22,7 @@ export default function ContributeCard({ g }: { g: GameState }) {
                   <span>{p.contribution_done ? "✓ Done" : <span className="muted">Adding…</span>}</span>
                 </div>
               ))}
-              <div className="action-bar"><button className="secondary" onClick={() => void finishContribution(true)}>Start now</button></div>
+              <div className="action-bar"><button className="secondary" onClick={() => void finishContribution(true)} disabled={busyAction !== null}>{busyAction === "force-start" ? "Starting…" : "Start now"}</button></div>
             </>
           ) : me?.contribution_done ? (
             <>

@@ -31,6 +31,22 @@ export function isCustomQuestionComplete(cq: CustomQuestionInput): boolean {
   return Boolean(cq.question.trim()) && cq.choices.every((c) => c.trim());
 }
 
+/**
+ * Two choices count as the same when they match after trimming and
+ * lower-casing, so "Chips" and " chips " are a duplicate. Empty choices
+ * are skipped here — isCustomQuestionComplete catches those.
+ */
+export function hasDuplicateChoices(cq: CustomQuestionInput): boolean {
+  const seen = new Set<string>();
+  for (const c of cq.choices) {
+    const key = c.trim().toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
 /** Trim + cap lengths, so a saved custom question can never exceed the limits. */
 export function cleanCustomQuestion(cq: CustomQuestionInput): CustomQuestionInput {
   return {
@@ -53,6 +69,9 @@ export async function insertCustomQuestion(
   authorId: string,
 ): Promise<string | null> {
   const clean = cleanCustomQuestion(cq);
+  // A duplicate option can never be a real choice — refuse it here too, so
+  // no caller can save one even if it skips the form-level check.
+  if (hasDuplicateChoices(clean)) return "Two choices are the same — make each choice different.";
   for (let attempt = 0; attempt < 2; attempt++) {
     const { data: maxRows } = await sb
       .from("game_questions")

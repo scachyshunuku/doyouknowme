@@ -10,7 +10,7 @@ import { renderQuestionText } from "../../lib/template";
 import ExpandableText from "../ExpandableText";
 
 export default function FinalCard({ g }: { g: GameState }) {
-  const { game, players, questions, answers, myPlayerId, skippedIds, isHost, totals, subjectPlayer, hostPlayer, leaderboard, matchesLeaderboard, playAgain } = g;
+  const { game, players, questions, answers, myPlayerId, skippedIds, isHost, totals, subjectPlayer, hostPlayer, leaderboard, matchesLeaderboard, busyAction, playAgain } = g;
   if (!game) return null;
   return (
     <>
@@ -19,10 +19,10 @@ export default function FinalCard({ g }: { g: GameState }) {
         <div className="card">
           <h2>Final leaderboard</h2>
           <table className="leaderboard-table">
-            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
+            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th></tr></thead>
             <tbody>
               {leaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -30,10 +30,10 @@ export default function FinalCard({ g }: { g: GameState }) {
         <div className="card">
           <h2>Matches with {subjectPlayer?.name ?? "the star"}</h2>
           <table className="leaderboard-table">
-            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
+            <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th></tr></thead>
             <tbody>
               {matchesLeaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -76,7 +76,7 @@ export default function FinalCard({ g }: { g: GameState }) {
             );
           })}
         </div>
-        {isHost && <div className="action-bar"><button onClick={playAgain}>Play again</button></div>}
+        {isHost && <div className="action-bar"><button onClick={playAgain} disabled={busyAction !== null}>{busyAction === "replay" ? "Starting a new game…" : "Play again"}</button></div>}
         {/* The host already replayed and this client missed the automatic
             follow (e.g. its live connection dropped): offer the new game
             instead of leaving it stranded on the finished screen. */}

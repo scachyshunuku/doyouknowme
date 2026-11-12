@@ -13,6 +13,7 @@ import { renderQuestionText } from "./template";
 import { shuffleArray, shuffledOptions } from "./shuffle";
 import {
   emptyCustomQuestion,
+  hasDuplicateChoices,
   insertCustomQuestion,
   isCustomQuestionComplete,
 } from "./custom-questions";
@@ -32,6 +33,11 @@ export interface GameState {
   error: string;
   busyStart: boolean;
   busySubjectId: string | null;
+  // Which host advance action is in flight ("results" | "next" | "skip" |
+  // "replay" | "force-start"). The button for that action shows a "…" label
+  // and stays disabled until the round-trip lands, so a double-tap cannot
+  // fire it twice and the host sees the tap landed.
+  busyAction: string | null;
   copied: boolean;
   joinName: string;
   joinBusy: boolean;
@@ -111,6 +117,7 @@ export function useGame(code: string): GameState {
   const [error, setError] = useState("");
   const [busyStart, setBusyStart] = useState(false);
   const [busySubjectId, setBusySubjectId] = useState<string | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
@@ -486,9 +493,17 @@ export function useGame(code: string): GameState {
       const nonHost = ((ps as { id: string; role: string; contribution_done: boolean }[]) ?? []).filter((p) => p.role !== "host");
       if (nonHost.length === 0 || !nonHost.every((p) => p.contribution_done)) return;
     }
-    const { error } = await sb.rpc("finish_contribution", { p_game_id: game.id });
-    if (error) return setError(error.message);
-    await load();
+    // The host's "Start now" (force) gets the same treatment as the other
+    // advance buttons: a "…" label and a disabled button until the RPC
+    // lands, so the tap is visibly answered and cannot double-fire.
+    setBusyAction("force-start");
+    try {
+      const { error } = await sb.rpc("finish_contribution", { p_game_id: game.id });
+      if (error) return setError(error.message);
+      await load();
+    } finally {
+      setBusyAction(null);
+    }
   }, [game, load]);
 
   // When everyone has finished adding questions, the game starts on its
@@ -549,6 +564,12 @@ export function useGame(code: string): GameState {
     if (!sb || !game || !me) return;
     if (!isCustomQuestionComplete(contribQ)) {
       return setContribError(questionsRequired ? "Fill in the question and all 4 choices." : "Fill in the question and all 4 choices, or Skip it.");
+    }
+    // A duplicate option can never be a real choice. Check it here, before
+    // any database call, so the error shows at once instead of after the
+    // round-trips. (insertCustomQuestion refuses it too, as a backstop.)
+    if (hasDuplicateChoices(contribQ)) {
+      return setContribError("Two choices are the same — make each choice different.");
     }
     setContribBusy(true); setContribError("");
     // The phase may already be over (the host hit Start now while this
@@ -658,27 +679,37 @@ export function useGame(code: string): GameState {
 
   async function showResults() {
     const sb = getSupabase();
-    if (!sb || !game || !isHost) return;
-    // Guarded on the current status: a stale tab that already moved on
-    // cannot drag the game back to Results.
-    await sb.from("games").update({ status: "results" }).eq("id", game.id).eq("status", "question");
-    await load();
+    if (!sb || !game || !isHost || busyAction) return;
+    setBusyAction("results");
+    try {
+      // Guarded on the current status: a stale tab that already moved on
+      // cannot drag the game back to Results.
+      await sb.from("games").update({ status: "results" }).eq("id", game.id).eq("status", "question");
+      await load();
+    } finally {
+      setBusyAction(null);
+    }
   }
 
   async function nextQuestion() {
     const sb = getSupabase();
-    if (!sb || !game || !isHost) return;
-    if (game.current_question_index + 1 >= questions.length) {
-      await sb.from("games").update({ status: "finished" }).eq("id", game.id).eq("status", "results");
-    } else {
-      await sb.from("games").update({ status: "question", current_question_index: game.current_question_index + 1 }).eq("id", game.id).eq("status", "results");
+    if (!sb || !game || !isHost || busyAction) return;
+    setBusyAction("next");
+    try {
+      if (game.current_question_index + 1 >= questions.length) {
+        await sb.from("games").update({ status: "finished" }).eq("id", game.id).eq("status", "results");
+      } else {
+        await sb.from("games").update({ status: "question", current_question_index: game.current_question_index + 1 }).eq("id", game.id).eq("status", "results");
+      }
+      await load();
+    } finally {
+      setBusyAction(null);
     }
-    await load();
   }
 
   async function playAgain() {
     const sb = getSupabase();
-    if (!sb || !game || !isHost || !me) return;
+    if (!sb || !game || !isHost || !me || busyAction) return;
     // Already replayed (e.g. the host is still on the old page): just go
     // to the new game instead of creating a second one.
     if (game.replay_code) { router.push(`/game/${game.replay_code}`); return; }
@@ -688,48 +719,58 @@ export function useGame(code: string): GameState {
     // the auto-advance guard, the wizard position) and any one of them left
     // stale would poison the next round — a new game has none of that. The
     // old game stays finished as history.
-    const newCode = generateGameCode();
-    const hostPlayerId = crypto.randomUUID();
-    const { data: newGame, error: gameErr } = await sb
-      .from("games")
-      .insert({ code: newCode, question_package_id: effectivePackageId, custom_question_limit: effectiveLimit, custom_questions_required: setupRequired, host_player_id: hostPlayerId, status: "lobby", current_question_index: 0 })
-      .select()
-      .single();
-    if (gameErr || !newGame) return setError(gameErr?.message ?? "Could not start a new game.");
-    const { error: playerErr } = await sb
-      .from("players")
-      .insert({ id: hostPlayerId, game_id: newGame.id, name: me.name, role: "host" })
-      .select()
-      .single();
-    if (playerErr) {
-      await sb.from("games").delete().eq("id", newGame.id);
-      return setError(playerErr.message);
+    setBusyAction("replay");
+    try {
+      const newCode = generateGameCode();
+      const hostPlayerId = crypto.randomUUID();
+      const { data: newGame, error: gameErr } = await sb
+        .from("games")
+        .insert({ code: newCode, question_package_id: effectivePackageId, custom_question_limit: effectiveLimit, custom_questions_required: setupRequired, host_player_id: hostPlayerId, status: "lobby", current_question_index: 0 })
+        .select()
+        .single();
+      if (gameErr || !newGame) return setError(gameErr?.message ?? "Could not start a new game.");
+      const { error: playerErr } = await sb
+        .from("players")
+        .insert({ id: hostPlayerId, game_id: newGame.id, name: me.name, role: "host" })
+        .select()
+        .single();
+      if (playerErr) {
+        await sb.from("games").delete().eq("id", newGame.id);
+        return setError(playerErr.message);
+      }
+      try { localStorage.setItem(sessionKey(newCode), JSON.stringify({ player_id: hostPlayerId, game_id: newGame.id, name: me.name, role: "host" })); } catch { /* ignore */ }
+      // Point the old game at the new one so every guest's client follows
+      // into the new lobby on its own (Task 23). Best-effort: if this
+      // update fails, the host still lands in the new game and can share
+      // the link, and the old game's finished screen offers the new game
+      // once the pointer is set.
+      await sb.from("games").update({ replay_code: newCode }).eq("id", game.id);
+      router.push(`/game/${newCode}`);
+    } finally {
+      setBusyAction(null);
     }
-    try { localStorage.setItem(sessionKey(newCode), JSON.stringify({ player_id: hostPlayerId, game_id: newGame.id, name: me.name, role: "host" })); } catch { /* ignore */ }
-    // Point the old game at the new one so every guest's client follows
-    // into the new lobby on its own (Task 23). Best-effort: if this
-    // update fails, the host still lands in the new game and can share
-    // the link, and the old game's finished screen offers the new game
-    // once the pointer is set.
-    await sb.from("games").update({ replay_code: newCode }).eq("id", game.id);
-    router.push(`/game/${newCode}`);
   }
 
   async function skipQuestion() {    const sb = getSupabase();
-    if (!sb || !game || !isHost || !currentQuestion) return;
-    // Skip the current question: no points are scored for it. The row is
-    // marked skipped (kept, not deleted) and the game moves on exactly like
-    // Next Question — the skipped question stays in the list, so the total
-    // question count never drops, and it shows in the Answer review marked
-    // Skipped with +0 pts.
-    const { error } = await sb.from("game_questions").update({ skipped: true }).eq("id", currentQuestion.id);
-    if (error) return setError(error.message);
-    if (game.current_question_index + 1 >= questions.length) {
-      await sb.from("games").update({ status: "finished" }).eq("id", game.id).eq("status", "question");
-    } else {
-      await sb.from("games").update({ status: "question", current_question_index: game.current_question_index + 1 }).eq("id", game.id).eq("status", "question");
+    if (!sb || !game || !isHost || !currentQuestion || busyAction) return;
+    setBusyAction("skip");
+    try {
+      // Skip the current question: no points are scored for it. The row is
+      // marked skipped (kept, not deleted) and the game moves on exactly like
+      // Next Question — the skipped question stays in the list, so the total
+      // question count never drops, and it shows in the Answer review marked
+      // Skipped with +0 pts.
+      const { error } = await sb.from("game_questions").update({ skipped: true }).eq("id", currentQuestion.id);
+      if (error) return setError(error.message);
+      if (game.current_question_index + 1 >= questions.length) {
+        await sb.from("games").update({ status: "finished" }).eq("id", game.id).eq("status", "question");
+      } else {
+        await sb.from("games").update({ status: "question", current_question_index: game.current_question_index + 1 }).eq("id", game.id).eq("status", "question");
+      }
+      await load();
+    } finally {
+      setBusyAction(null);
     }
-    await load();
   }
 
   const leaderboard = sortByPoints(leaderboardPlayers(players, game?.host_player_id ?? null, game?.subject_player_id ?? null), totals);
@@ -747,6 +788,7 @@ export function useGame(code: string): GameState {
     error,
     busyStart,
     busySubjectId,
+    busyAction,
     copied,
     joinName,
     joinBusy,

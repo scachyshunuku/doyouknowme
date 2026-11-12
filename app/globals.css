@@ -81,6 +81,12 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 .muted { color: var(--text-muted); }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 button { width: 100%; min-height: var(--tap); padding: 14px; margin-top: 12px; border: 0; border-radius: 12px; background: var(--accent); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+/* Every button answers a tap at once: it presses in the moment it is
+   touched, so no button ever feels dead while its action lands. The
+   async actions also show a "…" label and stay disabled until the
+   round-trip finishes (see busyAction), but the press-in is instant and
+   needs no round-trip. */
+button:active { transform: scale(0.97); }
 button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 button.secondary { background: var(--border); }
 button:disabled { opacity: 0.5; cursor: default; }
