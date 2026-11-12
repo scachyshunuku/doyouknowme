@@ -408,4 +408,4 @@ William, from a screenshot of game JH9T9V: "lobby has extra margin at the bottom
 
 - [x] The last player row's own bottom padding (14px) stacked on the card's bottom padding (16px), leaving ~30px of dead space after the last player. Added `.player-row:last-child { padding-bottom: 0; }` so the last row sits flush on the card's padding, matching the top (the heading sits on the same 16px). Measured in the playground lobby: gap after the last player is now 17px (16px card padding + 1px border), down from ~31px.
 - [x] Verified: `npm run build` passes.
-- **Status**: PUSHED Nov 11 as commit `TODO` and VERIFIED LIVE (TODO).
+- **Status**: PUSHED Nov 11 as commit `f35fe6a` and VERIFIED LIVE (live CSS contains the "player-row:last-child" rule).

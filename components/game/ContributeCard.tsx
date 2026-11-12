@@ -6,7 +6,7 @@ import type { GameState } from "../../lib/use-game";
 import CustomQuestionForm from "../CustomQuestionForm";
 
 export default function ContributeCard({ g }: { g: GameState }) {
-  const { game, players, me, contribSlot, contribQ, contribBusy, contribError, isHost, customOnly, questionsRequired, effectiveLimit, finishContribution, submitContribSlot, skipContribSlot, setContribQ } = g;
+  const { game, players, me, contribSlot, contribQ, contribBusy, contribError, isHost, customOnly, questionsRequired, effectiveLimit, finishContribution, submitContribSlot, skipContribSlot, setContribQ, subjectPlayer } = g;
   if (!game) return null;
   return (
     <>
@@ -32,13 +32,10 @@ export default function ContributeCard({ g }: { g: GameState }) {
           ) : (
             <>
               <h2>Add your questions</h2>
-              {!questionsRequired && (
-                <p>
-                  You can skip any of them.
-                  {customOnly && " The game needs at least one question to start."}
-                </p>
+              {!questionsRequired && customOnly && (
+                <p>The game needs at least one question to start.</p>
               )}
-              <CustomQuestionForm label={`Question ${contribSlot + 1} of ${effectiveLimit}`} value={contribQ} onChange={setContribQ} />
+              <CustomQuestionForm label={`Question ${contribSlot + 1} of ${effectiveLimit}`} value={contribQ} onChange={setContribQ} starName={subjectPlayer?.name ?? null} />
               {contribError && <div className="error">{contribError}</div>}
               <div className="action-bar">
                 <button onClick={() => void submitContribSlot(contribSlot + 1 >= effectiveLimit)} disabled={contribBusy}>{contribBusy ? "Saving…" : contribSlot + 1 >= effectiveLimit ? "Complete" : "Next question"}</button>

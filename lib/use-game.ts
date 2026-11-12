@@ -86,7 +86,6 @@ export interface GameState {
   nextQuestion: () => Promise<void>;
   skipQuestion: () => Promise<void>;
   playAgain: () => Promise<void>;
-  resumeGame: () => void;
   setJoinName: (v: string) => void;
   setContribQ: (v: CustomQuestionInput) => void;
   setSetupPackageId: (v: string | null) => void;
@@ -99,7 +98,10 @@ export interface GameState {
 export function useGame(code: string): GameState {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const joinParam = searchParams.get("join") === "1";
+  // The code of the game this one was replayed from (Task 23). When a
+  // guest follows a replay into a new game, the URL carries the old code
+  // so the new page can re-join them with the same name and role.
+  const replayFrom = searchParams.get("replayFrom")?.toUpperCase() ?? null;
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [questions, setQuestions] = useState<GameQuestion[]>([]);
@@ -139,6 +141,11 @@ export function useGame(code: string): GameState {
   // instead of waiting ~1s for the insert round-trip.
   const [pendingPick, setPendingPick] = useState<number | null>(null);
   const autoAdvancedRef = useRef("");
+  // Play again (Task 23): the replay code this client has already followed,
+  // and whether the replay auto-join has run. Both guard against the
+  // Realtime reloads that fire while the new game is being set up.
+  const replayFollowRef = useRef("");
+  const replayJoinRef = useRef(false);
   // True once a load() has finished AFTER the current session was set.
   // The stale-session cleanup below must wait for that: right after joining,
   // myPlayerId is set but players still holds the pre-join list, so an
@@ -225,6 +232,59 @@ export function useGame(code: string): GameState {
   }, [loaded, myPlayerId, me, game, code, players.length]);
 
   const isHost = me?.role === "host" && me.id === game?.host_player_id;
+
+  // Play again, guest side (Task 23): when the host replays, the old
+  // game row gains a replay_code. Every guest still on the old game
+  // follows it into the new lobby on their own — the host never has to
+  // re-share a link. The host already navigated in playAgain, so only
+  // non-hosts follow.
+  useEffect(() => {
+    if (!game?.replay_code || isHost) return;
+    if (replayFollowRef.current === game.replay_code) return;
+    replayFollowRef.current = game.replay_code;
+    router.push(`/game/${game.replay_code}?replayFrom=${code}`);
+  }, [game?.replay_code, isHost, code, router]);
+
+  // Play again, new-game side (Task 23): a guest who followed a replay
+  // lands here with ?replayFrom=<old code> and no session for the new
+  // game. Re-join them with the same name and role they had in the old
+  // game, so they are already in the new lobby. The old star stays the
+  // star: their row keeps the subject role and the game points at them,
+  // so the host can just hit Start. Runs once, after the game loads;
+  // a session for the new code (or a reload after joining) skips it.
+  // The role comes from the old player's CURRENT row, not the saved
+  // session — the session was written at join time (role "guest"), so a
+  // star picked later would otherwise re-join as a guest and lose the ★.
+  useEffect(() => {
+    if (!game || !loaded || !replayFrom || replayFrom === code || replayJoinRef.current) return;
+    let existing: string | null = null;
+    try { existing = localStorage.getItem(sessionKey(code)); } catch { /* ignore */ }
+    if (existing) return;
+    let old: { player_id?: string; name?: string; role?: string } | null = null;
+    try {
+      const raw = localStorage.getItem(sessionKey(replayFrom));
+      if (raw) old = JSON.parse(raw) as { player_id?: string; name?: string; role?: string };
+    } catch { /* Corrupt old session: fall through to the join card. */ }
+    if (!old?.name || !old?.player_id || !old?.role || old.role === "host") return;
+    replayJoinRef.current = true;
+    void (async () => {
+      const sb = getSupabase();
+      if (!sb) return;
+      const { data: oldRow } = await sb.from("players").select("role").eq("id", old.player_id).single();
+      const role = (oldRow as { role?: string } | null)?.role ?? old.role;
+      if (role === "host") return;
+      const newId = crypto.randomUUID();
+      const { error } = await sb.from("players").insert({ id: newId, game_id: game.id, name: old.name, role }).select().single();
+      if (error) { replayJoinRef.current = false; return; }
+      try { localStorage.setItem(sessionKey(code), JSON.stringify({ player_id: newId, game_id: game.id, name: old.name, role })); } catch { /* ignore */ }
+      setMyPlayerId(newId);
+      if (role === "subject") {
+        await sb.from("games").update({ subject_player_id: newId }).eq("id", game.id);
+      }
+      await load();
+      router.replace(`/game/${code}`);
+    })();
+  }, [game, loaded, replayFrom, code, load, router]);
   // Custom-only means the game has no package: it plays only what guests
   // contribute. Questions may be optional, but the game still needs at
   // least one — if nobody adds one, it comes back to the lobby instead of
@@ -255,12 +315,11 @@ export function useGame(code: string): GameState {
   }
   // Invite links open a join dialog: a visitor with no session for this game
   // enters a name and joins as a guest, instead of landing in the game as a
-  // spectator with no way in. Opening your own invite link (?join=1) while
-  // already in the game offers Continue as yourself. Plain refreshes (no
-  // param) resume silently. There is no "join as someone else": a player
-  // row is never deleted, so a game cannot lose its host or its star to a
-  // switch (their answers and their place in the game would go with it).
-  const showJoin = loaded && !!game && (!me || joinParam);
+  // spectator with no way in. A plain refresh resumes silently. There is no
+  // "join as someone else": a player row is never deleted, so a game cannot
+  // lose its host or its star to a switch (their answers and their place in
+  // the game would go with it).
+  const showJoin = loaded && !!game && !me;
   const currentQuestion = game && questions.length > 0 ? questions[Math.min(game.current_question_index, questions.length - 1)] : null;
   const currentAnswers = currentQuestion ? answers.filter((a) => a.game_question_id === currentQuestion.id) : [];
   const nonHostPlayers = players.filter((p) => p.role !== "host");
@@ -276,9 +335,13 @@ export function useGame(code: string): GameState {
   const round = currentQuestion ? computeRoundResult(currentAnswers, players, game?.subject_player_id ?? null) : null;
   const subjectPlayer = players.find((p) => p.id === game?.subject_player_id) ?? null;
   const hostPlayer = players.find((p) => p.id === game?.host_player_id) ?? null;
-  // Question text is a template: {subject} and {host} are filled in here.
+  // Question text: bank questions are templates ({subject}/{host} filled
+  // in here), but custom questions are written after the star is picked,
+  // so the author types the actual name — they render as-is, no template.
   const questionText = currentQuestion
-    ? renderQuestionText(currentQuestion.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })
+    ? currentQuestion.is_custom
+      ? currentQuestion.text
+      : renderQuestionText(currentQuestion.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null })
     : "";
   // The 4 options are shuffled per game (seeded by game + question), so
   // every player sees the same order and it survives reloads. Answers are
@@ -317,14 +380,13 @@ export function useGame(code: string): GameState {
     })();
   }, [game, allSubmitted, currentQuestion]);
 
-  // "Continue as X" on the join card: drop the ?join=1 so a plain refresh
-  // resumes silently instead of showing the join dialog again.
-  function resumeGame() {
-    router.replace(`/game/${code}`);
-  }
-
   async function copyInvite() {
-    const url = `${window.location.origin}/game/${code}?join=1`;
+    // The invite link is just the game URL. Anyone who opens it with no
+    // session for this game gets the join card (enter a name); anyone
+    // already in the game resumes straight into it. There used to be a
+    // ?join=1 on the link, but it only forced players who were already in
+    // to see the join card instead of resuming — nobody needs it.
+    const url = `${window.location.origin}/game/${code}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -509,20 +571,25 @@ export function useGame(code: string): GameState {
     const err = await insertCustomQuestion(sb, game.id, contribQ, me.id);
     if (err) { setContribBusy(false); return setContribError(err); }
     if (finishAfter) {
+      // The player is done: finishMyContribution marks them done locally
+      // (so the wizard is replaced at once) and leaves the buttons
+      // disabled until the phase has moved on. Do not re-enable here.
       await finishMyContribution();
     } else {
       const next = contribSlot + 1;
       setContribSlot(next);
       setContribQ(emptyCustomQuestion());
       try { localStorage.setItem(contribKey, String(next)); } catch { /* ignore */ }
+      setContribBusy(false);
     }
-    setContribBusy(false);
   }
 
   async function skipContribSlot(finishAfter: boolean) {
     if (contribBusy) return;
     setContribBusy(true);
     if (finishAfter) {
+      // As above: the player is done, so the wizard goes away — do not
+      // re-enable the buttons on a blank question.
       await finishMyContribution();
     } else {
       const next = contribSlot + 1;
@@ -530,21 +597,27 @@ export function useGame(code: string): GameState {
       setContribQ(emptyCustomQuestion());
       setContribError("");
       try { localStorage.setItem(contribKey, String(next)); } catch { /* ignore */ }
+      setContribBusy(false);
     }
-    setContribBusy(false);
   }
 
   async function finishMyContribution() {
     const sb = getSupabase();
     if (!sb || !me) return;
     setContribBusy(true);
-    const { error } = await sb.from("players").update({ contribution_done: true }).eq("id", me.id);
-    if (error) { setContribBusy(false); return setContribError(error.message); }
+    // Mark done locally FIRST, so the wizard is replaced by the "You're
+    // done" view the moment the button is tapped. The DB writes below take
+    // a round-trip each, and the user should not stare at the wizard while
+    // they land. If the update fails, the next load() re-reads the real
+    // state, the wizard comes back, and the error is shown.
+    setPlayers((prev) => prev.map((p) => (p.id === me.id ? { ...p, contribution_done: true } : p)));
     setContribQ(emptyCustomQuestion());
     try { localStorage.removeItem(contribKey); } catch { /* ignore */ }
-    setContribBusy(false);
+    const { error } = await sb.from("players").update({ contribution_done: true }).eq("id", me.id);
+    if (error) { setContribBusy(false); return setContribError(error.message); }
     await load();
     await finishContribution();
+    setContribBusy(false);
   }
 
   async function submitAnswer(optionIndex: number) {
@@ -606,13 +679,15 @@ export function useGame(code: string): GameState {
   async function playAgain() {
     const sb = getSupabase();
     if (!sb || !game || !isHost || !me) return;
+    // Already replayed (e.g. the host is still on the old page): just go
+    // to the new game instead of creating a second one.
+    if (game.replay_code) { router.push(`/game/${game.replay_code}`); return; }
     // Play again starts a fresh game: a new code, the same setup (package,
     // limit, required) and the same host. Resetting the same game row meant
     // resetting every piece of round state (answers, questions, done flags,
     // the auto-advance guard, the wizard position) and any one of them left
     // stale would poison the next round — a new game has none of that. The
-    // host shares the new code; guests join it like any game. The old game
-    // stays finished as history.
+    // old game stays finished as history.
     const newCode = generateGameCode();
     const hostPlayerId = crypto.randomUUID();
     const { data: newGame, error: gameErr } = await sb
@@ -631,6 +706,12 @@ export function useGame(code: string): GameState {
       return setError(playerErr.message);
     }
     try { localStorage.setItem(sessionKey(newCode), JSON.stringify({ player_id: hostPlayerId, game_id: newGame.id, name: me.name, role: "host" })); } catch { /* ignore */ }
+    // Point the old game at the new one so every guest's client follows
+    // into the new lobby on its own (Task 23). Best-effort: if this
+    // update fails, the host still lands in the new game and can share
+    // the link, and the old game's finished screen offers the new game
+    // once the pointer is set.
+    await sb.from("games").update({ replay_code: newCode }).eq("id", game.id);
     router.push(`/game/${newCode}`);
   }
 
@@ -720,7 +801,6 @@ export function useGame(code: string): GameState {
     nextQuestion,
     skipQuestion,
     playAgain,
-    resumeGame,
     setJoinName,
     setContribQ,
     setSetupPackageId,

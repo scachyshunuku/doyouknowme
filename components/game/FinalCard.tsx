@@ -3,7 +3,7 @@
 // The status guard lives here, so the page renders every stage
 // unconditionally and each card decides whether it shows.
 import type { GameState } from "../../lib/use-game";
-import { matchesLabel, pointsLabel } from "../../lib/format";
+import { pointsLabel } from "../../lib/format";
 import { computeRoundResult } from "../../lib/scoring";
 import { shuffledOptions } from "../../lib/shuffle";
 import { renderQuestionText } from "../../lib/template";
@@ -22,7 +22,7 @@ export default function FinalCard({ g }: { g: GameState }) {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
             <tbody>
               {leaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -33,7 +33,7 @@ export default function FinalCard({ g }: { g: GameState }) {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>
               {matchesLeaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.id === game.subject_player_id ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -47,7 +47,11 @@ export default function FinalCard({ g }: { g: GameState }) {
             const starAnswer = qAnswers.find((a) => a.player_id === game.subject_player_id);
             const starPick = starAnswer ? qOptions[starAnswer.option_index] : null;
             const isSkipped = skippedIds.has(q.id);
-            const reviewText = renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null });
+            // Custom questions render as-is (the author typed the actual
+            // name); bank questions are templates ({subject}/{host}).
+            const reviewText = q.is_custom
+              ? q.text
+              : renderQuestionText(q.text, { subject: subjectPlayer?.name ?? null, host: hostPlayer?.name ?? null });
             return (
               <div className="review-question" key={q.id}>
                 <p className={reviewText.length > 150 ? "question-text long" : "question-text"}>Q{qi + 1}. {reviewText}{isSkipped ? " — Skipped" : ""}</p>
@@ -73,6 +77,10 @@ export default function FinalCard({ g }: { g: GameState }) {
           })}
         </div>
         {isHost && <div className="action-bar"><button onClick={playAgain}>Play again</button></div>}
+        {/* The host already replayed and this client missed the automatic
+            follow (e.g. its live connection dropped): offer the new game
+            instead of leaving it stranded on the finished screen. */}
+        {!isHost && game.replay_code && <div className="action-bar"><button onClick={() => { window.location.href = `/game/${game.replay_code}?replayFrom=${game.code}`; }}>Continue to the new game</button></div>}
         </>
       )}
     </>

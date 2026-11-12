@@ -130,7 +130,7 @@ export default function Home() {
           <h2>Host a game</h2>
           <label>Your name (host)</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" maxLength={25} />
-          <label>Question package</label>
+          <label>Question bank</label>
           {packagesLoading ? (
             <p>Loading packages…</p>
           ) : packages.length === 0 ? (

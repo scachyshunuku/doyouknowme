@@ -26,6 +26,9 @@ export interface Game {
   custom_question_limit: number;
   // When true, every guest must fill all of their question slots (no Skip).
   custom_questions_required: boolean;
+  // Code of the new game created by Play again. Guests follow it into the
+  // new lobby (Task 23). Null until the host replays.
+  replay_code: string | null;
   created_at: string;
 }
 

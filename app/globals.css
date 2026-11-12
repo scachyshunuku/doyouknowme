@@ -27,18 +27,58 @@ p { line-height: 1.5; color: var(--text-muted); }
 .card > h2:first-child { margin-top: 0; }
 label { display: block; font-size: 14px; margin: 12px 0 4px; color: var(--text-muted); }
 input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: #12152a; color: #fff; font-size: 16px; }
-/* Extra right padding so the select's dropdown arrow is never clipped. */
-select { padding-right: 40px; }
+/* Multi-line text fields (custom questions + choices): word-wrap and grow
+   with the text, instead of scrolling sideways on one line. The height is
+   set by JS (ExpandingTextarea); resize is off so it only grows that way. */
+textarea {
+  width: 100%; padding: 12px; border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: #12152a; color: #fff; font-size: 16px; font-family: inherit;
+  line-height: 1.5; resize: none; overflow: hidden;
+}
+/* Custom dropdown arrow: the native one clipped at the right edge, so the
+   select draws its own chevron (theme-muted) inside the padding instead. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c9cbe0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 48px;
+}
 /* A disabled select reads as off, so the custom-questions-only checkbox
    visibly turns the package picker off. */
 select:disabled { opacity: 0.45; cursor: not-allowed; }
-/* Checkbox row: the box stays a small square next to its label instead of
-   taking the full-width input treatment. */
-.checkbox-row { display: flex; align-items: center; gap: 10px; margin: 12px 0 0; cursor: pointer; }
+/* A settings group (one control plus its toggle): the gap between groups
+   is the hierarchy, not the gap between a label and its own control. */
+.field { margin-bottom: 20px; }
+.field:last-child { margin-bottom: 0; }
+/* The question heading of a custom-question form: bigger and brighter than
+   the choice labels, so the question reads as the section, not a field. */
+.form-section { display: block; font-size: 18px; font-weight: 700; color: #fff; margin: 12px 0 4px; }
+/* Checkbox as a toggle row: a bordered, padded row with a themed box, so
+   the setting reads as a control instead of a bare native checkbox. */
+.checkbox-row { display: flex; align-items: center; gap: 12px; padding: 12px; margin: 10px 0 0; border: 1px solid var(--border); border-radius: 10px; background: #12152a; cursor: pointer; font-size: 16px; color: var(--text); }
 .checkbox-row:has(input:disabled) { opacity: 0.5; cursor: default; }
 .muted { color: var(--text-muted); }
-.checkbox-row input[type="checkbox"] { width: 20px; height: 20px; padding: 0; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
-input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+/* Themed checkbox: a dark box with a purple fill and white tick when
+   checked — the native white box never matched the theme. */
+.checkbox-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: #12152a;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-grid; place-content: center;
+  padding: 0; margin: 0;
+}
+.checkbox-row input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.checkbox-row input[type="checkbox"]:checked::after { content: "✓"; color: #fff; font-size: 14px; font-weight: 700; line-height: 1; }
+.checkbox-row input[type="checkbox"]:disabled { opacity: 0.5; cursor: default; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 button { width: 100%; min-height: var(--tap); padding: 14px; margin-top: 12px; border: 0; border-radius: 12px; background: var(--accent); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
 button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 button.secondary { background: var(--border); }
@@ -47,12 +87,14 @@ button.small { width: auto; min-height: 44px; padding: 8px 14px; font-size: 14px
 button.small.active { background: var(--gold); color: #111; }
 .error { background: #4a1d1d; border: 1px solid #7a2e2e; padding: 12px; border-radius: 10px; }
 .code { font-size: 36px; letter-spacing: 6px; font-weight: 800; text-align: center; }
-.options { display: grid; gap: 10px; margin-top: 12px; }
+.options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 12px; }
 /* Guest buttons are flex rows too, so the A/B/C/D chip sits on the left,
    vertically centred, and the text wraps in its own column to its right —
-   the same layout as the host tiles, so guests know which option is which. */
-.options button { display: flex; align-items: center; gap: 12px; margin: 0; text-align: left; background: #252a47; }
-.options button .opt-text { flex: 1; min-width: 0; }
+   the same layout as the host tiles, so guests know which option is which.
+   minmax(0, 1fr) + min-width: 0 let the button shrink below a long
+   unbroken word instead of blowing the grid out past the card edge. */
+.options button { display: flex; align-items: center; gap: 12px; margin: 0; text-align: left; background: #252a47; min-width: 0; }
+.options button .opt-text { flex: 1; min-width: 0; overflow-wrap: break-word; }
 .options button.selected { background: #6c5ce7; }
 .tag { display: inline-block; background: #2c3152; border-radius: 999px; padding: 2px 10px; font-size: 12px; margin-left: 6px; }
 .bar { height: 12px; background: #2c3152; border-radius: 999px; overflow: hidden; margin: 6px 0 12px; }
@@ -70,7 +112,7 @@ button.small.active { background: var(--gold); color: #111; }
 /* The star is marked with a gold star, not a tag. */
 .subject-star { color: var(--gold); font-size: 18px; margin-left: 8px; }
 .row:last-child { border-bottom: 0; }
-.question-text { font-size: 20px; color: #fff; }
+.question-text { font-size: 20px; color: #fff; overflow-wrap: break-word; }
 /* Long text (questions up to 300 chars, options up to 150) gets smaller
    fonts so it stays readable without pushing everything off-screen. */
 .question-text.long { font-size: 18px; line-height: 1.4; }
@@ -78,13 +120,14 @@ button.small.active { background: var(--gold); color: #111; }
 .my-pick.long { font-size: 16px; line-height: 1.4; }
 /* Long host options drop to a single column: a list reads better than a
    tall uneven 2-column grid, and the tiles shrink to match. */
-.host-options.long-options { grid-template-columns: 1fr; }
+.host-options.long-options { grid-template-columns: minmax(0, 1fr); }
 .host-options.long-options .host-option { font-size: 18px; padding: 16px; }
 /* Expandable long text (Results + answer review): clamped to 3 lines with
    "…show more", expands in place on tap. Short text renders as-is. The
    hint is a sibling of the clamped text, not inside it — line-clamp would
-   hide a hint placed inside. */
-.expandable-wrap { cursor: pointer; }
+   hide a hint placed inside. A long unbroken string breaks instead of
+   blowing out past the card edge. */
+.expandable-wrap { cursor: pointer; overflow-wrap: break-word; }
 .expandable.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .expandable-wrap .expand-hint { color: var(--gold); font-size: 0.85em; white-space: nowrap; }
 
@@ -95,26 +138,18 @@ main.tv { max-width: 1680px; }
 .tv .question-text.long { font-size: 28px; }
 .tv h2 { font-size: 26px; }
 .tv .code { font-size: 48px; }
-.host-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+.host-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
 /* Read-only on purpose: dashed border and flat fill, so the host's options
    never read as tappable buttons. Flex row: the letter chip stays on the
    left and the text wraps in its own column to its right, never underneath
    the chip. */
-.host-option { display: flex; align-items: center; gap: 12px; background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; }
-.host-option .opt-text { flex: 1; min-width: 0; }
+.host-option { display: flex; align-items: center; gap: 12px; background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; min-width: 0; }
+.host-option .opt-text { flex: 1; min-width: 0; overflow-wrap: break-word; }
 /* Fixed square, flex-centred, so the letter sits dead-centre in the purple chip. */
 .opt-letter { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; padding: 0; line-height: 1; vertical-align: middle; background: #6c5ce7; border-radius: 8px; font-size: 18px; }
 
 /* Running leaderboard: on the side on wide screens, stacked below on mobile.
-   The score never wraps onto two lines. Points and matches sit in two fixed,
-   right-aligned columns, so both numbers line up for every row. */
-.leaderboard-side .row span:last-child { white-space: nowrap; flex-shrink: 0; }
-.leaderboard-side .score { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; flex-shrink: 0; }
-.leaderboard-side .score .pts { width: 60px; text-align: right; }
-.leaderboard-side .score .matches { width: 92px; text-align: right; }
-/* Long names truncate with … instead of wrapping, so the score stays on the
-   same line for every row. */
-.leaderboard-side .row span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   It is a table now (Rank / Name / Points), so the columns line up. */
 .game-layout { display: block; }
 @media (min-width: 900px) {
   /* Wide host view: question panel takes all remaining width, and both
@@ -137,6 +172,9 @@ main.tv { max-width: 1680px; }
    the "— name's pick" text are the only marker. Every row has side padding
    so the text never sits against the card border. */
 .result-option { padding: 10px 14px; }
+/* The option text in a result row shrinks to its column and breaks a long
+   unbroken string, so it never pushes the vote count off the row. */
+.result-option .row > span:first-child { min-width: 0; overflow-wrap: break-word; }
 .result-option.top-pick { background: rgba(245, 197, 66, 0.16); border: 2px solid var(--gold); border-radius: 12px; padding: 8px 12px; margin: 4px 0; }
 .result-option.top-pick .row { border-bottom: 0; }
 
@@ -145,7 +183,7 @@ main.tv { max-width: 1680px; }
   main { padding: 16px 12px calc(48px + env(safe-area-inset-bottom)); }
   .code { font-size: 28px; letter-spacing: 4px; }
   .options button { min-height: 56px; font-size: 18px; }
-  .host-options { grid-template-columns: 1fr; }
+  .host-options { grid-template-columns: minmax(0, 1fr); }
   .host-option { font-size: 20px; padding: 16px; }
 }
 
@@ -159,7 +197,7 @@ main.tv { max-width: 1680px; }
 
 /* Your own pick, shown on the waiting screen as confirmation. */
 .my-pick { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px; font-size: 18px; font-weight: 700; color: #fff; margin: 12px 0; }
-.my-pick .opt-text { flex: 1; min-width: 0; }
+.my-pick .opt-text { flex: 1; min-width: 0; overflow-wrap: break-word; }
 
 /* Sticky action bar: the host's one primary action stays in thumb reach
    at the bottom of the screen, above the phone's home indicator. */
@@ -194,7 +232,7 @@ main.tv { max-width: 1680px; }
 .leaderboard-table th { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .leaderboard-table tr:last-child td { border-bottom: 0; }
 .leaderboard-table td.num, .leaderboard-table th.num { text-align: right; white-space: nowrap; width: 80px; }
-.leaderboard-table td.rank, .leaderboard-table th.rank { width: 36px; }
+.leaderboard-table td.rank, .leaderboard-table th.rank { width: 56px; }
 .leaderboard-table td.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Answer review on the final screen: one block per question, the star's
@@ -207,10 +245,10 @@ main.tv { max-width: 1680px; }
 .review-question:first-of-type { border-top: 0; padding-top: 0; }
 .review-question .question-text { margin: 0 0 4px; font-size: 18px; line-height: 1.4; font-weight: 700; }
 .tv .review-question .question-text { font-size: 18px; line-height: 1.4; }
-.review-row { display: grid; grid-template-columns: 150px 1fr auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.review-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .review-row:last-child { border-bottom: 0; }
-.review-name { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.review-answer { text-align: left; }
+.review-name { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.review-answer { text-align: left; min-width: 0; overflow-wrap: break-word; }
 .review-points { text-align: right; white-space: nowrap; color: var(--text-muted); }
 
 /* Code row: big code plus a copy button, so the host can share the invite

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { computeRoundResult, computeTotals } from "../../lib/scoring";
 import { renderQuestionText } from "../../lib/template";
 import { shuffledOptions } from "../../lib/shuffle";
-import { matchesLabel, pointsLabel } from "../../lib/format";
+import { pointsLabel } from "../../lib/format";
 import { leaderboardPlayers, sortByMatches, sortByPoints } from "../../lib/leaderboard";
 import CustomQuestionForm from "../../components/CustomQuestionForm";
 import ExpandableText from "../../components/ExpandableText";
@@ -178,25 +178,29 @@ export default function Playground() {
       {view === "lobby" && (
         <div className="card">
           <h2>Game setup</h2>
-          <label>Question package</label>
-          <select value={setupPackageId ?? ""} disabled={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.value || null)}>
-            <option value="mock-pkg">Get to Know Me — General (10 questions)</option>
-            <option value="mock-test">Test Package — Test (5 questions)</option>
-          </select>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.checked ? null : "mock-pkg")} />
-            Custom questions only
-          </label>
-          <label>Custom questions per guest</label>
-          <select value={setupLimit} onChange={(e) => { const n = Number(e.target.value); setSetupLimit(n); if (n === 0) setSetupRequired(false); }}>
-            {Array.from({ length: 11 }, (_, i) => (
-              <option key={i} value={i}>{i === 0 ? "0 — no custom questions" : i}</option>
-            ))}
-          </select>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={setupRequired} disabled={setupLimit === 0} onChange={(e) => setSetupRequired(e.target.checked)} />
-            Require each guest to add their questions
-          </label>
+          <div className="field">
+            <label>Question bank</label>
+            <select value={setupPackageId ?? ""} disabled={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.value || null)}>
+              <option value="mock-pkg">Get to Know Me — General (10 questions)</option>
+              <option value="mock-test">Test Package — Test (5 questions)</option>
+            </select>
+            <label className="checkbox-row">
+              <input type="checkbox" checked={setupCustomOnly} onChange={(e) => setSetupPackageId(e.target.checked ? null : "mock-pkg")} />
+              Custom questions only
+            </label>
+          </div>
+          <div className="field">
+            <label>Custom questions per guest</label>
+            <select value={setupLimit} onChange={(e) => { const n = Number(e.target.value); setSetupLimit(n); if (n === 0) setSetupRequired(false); }}>
+              {Array.from({ length: 11 }, (_, i) => (
+                <option key={i} value={i}>{i}</option>
+              ))}
+            </select>
+            <label className="checkbox-row">
+              <input type="checkbox" checked={setupRequired} disabled={setupLimit === 0} onChange={(e) => setSetupRequired(e.target.checked)} />
+              Require each guest to add their questions
+            </label>
+          </div>
           {setupLimit > 0 && (
             <p>Guests add {setupLimit} question{setupLimit === 1 ? "" : "s"} each{setupRequired ? " (required)" : ""} before the game starts.</p>
           )}
@@ -222,8 +226,7 @@ export default function Playground() {
             ) : (
               <>
                 <h2>Add your questions</h2>
-                <p>You can skip any of them.</p>
-                <CustomQuestionForm label={`Question ${contribSlot + 1} of ${CONTRIB_LIMIT}`} value={contribQ} onChange={setContribQ} />
+                <CustomQuestionForm label={`Question ${contribSlot + 1} of ${CONTRIB_LIMIT}`} value={contribQ} onChange={setContribQ} starName={subjectName || null} />
                 <div className="action-bar">
                   <button onClick={() => { setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>{contribSlot + 1 >= CONTRIB_LIMIT ? "Complete" : "Next question"}</button>
                   <button className="secondary" onClick={() => { setContribQ(emptyCustomQuestion()); if (contribSlot + 1 >= CONTRIB_LIMIT) { setContribDone(true); } else { setContribSlot(contribSlot + 1); } }}>Skip</button>
@@ -259,12 +262,18 @@ export default function Playground() {
           </div>
           <aside className="card leaderboard-side">
             <h2>Leaderboard</h2>
-            {leaderboard.map((p, i) => (
-              <div className="row" key={p.id}>
-                <span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span>
-                <span className="score"><span className="pts">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span><span>·</span><span className="matches">{matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span></span>
-              </div>
-            ))}
+            <table className="leaderboard-table">
+              <thead><tr><th className="rank">Rank</th><th>Name</th><th className="num">Points</th></tr></thead>
+              <tbody>
+                {leaderboard.map((p, i) => (
+                  <tr key={p.id}>
+                    <td className="rank">{i + 1}</td>
+                    <td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td>
+                    <td className="num">{totals.totalPoints[p.id] ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </aside>
         </div>
       )}
@@ -323,12 +332,18 @@ export default function Playground() {
           </div>
           <aside className="card leaderboard-side">
             <h2>Leaderboard</h2>
-            {leaderboard.map((p, i) => (
-              <div className="row" key={p.id}>
-                <span>{i + 1}. {p.name}{p.role === "subject" ? " ★" : ""}</span>
-                <span className="score"><span className="pts">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</span><span>·</span><span className="matches">{matchesLabel(totals.subjectMatches[p.id] ?? 0)}</span></span>
-              </div>
-            ))}
+            <table className="leaderboard-table">
+              <thead><tr><th className="rank">Rank</th><th>Name</th><th className="num">Points</th></tr></thead>
+              <tbody>
+                {leaderboard.map((p, i) => (
+                  <tr key={p.id}>
+                    <td className="rank">{i + 1}</td>
+                    <td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td>
+                    <td className="num">{totals.totalPoints[p.id] ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </aside>
         </div>
       )}
@@ -341,7 +356,7 @@ export default function Playground() {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Points</th><th className="num">Matches</th></tr></thead>
             <tbody>
               {leaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
@@ -352,7 +367,7 @@ export default function Playground() {
             <thead><tr><th className="rank">#</th><th>Player</th><th className="num">Matches</th><th className="num">Points</th></tr></thead>
             <tbody>
               {matchesLeaderboard.map((p, i) => (
-                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{pointsLabel(totals.totalPoints[p.id] ?? 0)}</td></tr>
+                <tr key={p.id}><td className="rank">{i + 1}</td><td className="name">{p.name}{p.role === "subject" ? " ★" : ""}</td><td className="num">{totals.subjectMatches[p.id] ?? 0}</td><td className="num">{totals.totalPoints[p.id] ?? 0}</td></tr>
               ))}
             </tbody>
           </table>
