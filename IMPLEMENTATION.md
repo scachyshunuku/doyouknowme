@@ -616,7 +616,7 @@ William: "'Guests add 1 question each before the game starts.' you can get rid o
 - [x] The "Guests add N questions each before the game starts." line is removed from the Game setup card (`components/game/LobbyCards.tsx`) and the playground mirror. The stepper already shows the per-guest number, so the line was redundant.
 - [x] The missing gap above the lobby was a Task 35 regression: `.lobby-grid > .card { margin: 0; }` removed the cards' normal 16px top margin, so the grid sat flush against the game-code row. Fixed by giving the grid itself the margin back: `.lobby-grid { margin: 16px 0; }` (the cards inside keep `margin: 0` so the two columns stay aligned). Measured on a real game lobby (390px): 20px between the code row and the grid.
 - [x] Stretch question, answered by measurement (not just by reading the CSS): YES, the Game setup panel stretches to match the Players panel. In the playground lobby on desktop, with 4 players both cards were 494px tall; after injecting 8 extra guest rows (12 players) both were 1072px. The grid's default `align-items` stretches both cards to the tallest one's height; the content stays top-aligned, so the shorter panel just gets empty space at the bottom. If William wants the setup panel to stay its own height instead, the fix is `align-items: start` on `.lobby-grid`.
-- **Status**: implemented and verified locally; push pending the user's review.
+- **Status**: PUSHED Nov 12 as commit `3a46daa` and VERIFIED LIVE (live chunk page-e7bd628ca211e88b.js contains 0 "Guests add", "lobby-grid" and "card-setup"; live CSS contains "lobby-grid", "margin:16px 0" and the solid host-option fill #252a47).
 
 ### Task 37: Host question options use the guest button style (Nov 12, evening)
 
@@ -625,4 +625,12 @@ William: "for the TV/host screen, can we make the question options to be the sam
 - [x] The host's option tiles (`.host-option`) were transparent with a 2px dashed border, which read as draft placeholders next to the guests' solid filled buttons. They now use the same style as the guest buttons: solid `#252a47` fill, no border, 12px radius, letter chip on the left with the text beside it. Still read-only (a plain div, `cursor: default`, not a button), so nothing about them invites a tap.
 - [x] Kept the TV-appropriate sizing and layout: the host tiles stay larger (24px font, 22px padding) for TV distance and stay in a 2-column grid on a wide screen, while guests stay 1 column on a phone. Same style, scaled for the screen — the host tiles are bigger versions of the guest buttons, not a different design.
 - [x] Verified: `npm run build` passes. Screenshots `video-test/shot-host-options.png` (TV: solid 2-column tiles) and `video-test/shot-guest-options.png` (phone: solid 1-column buttons) — the fill, chip and text layout match.
+- **Status**: PUSHED Nov 12 as commit `3a46daa` (same push as Task 36) and VERIFIED LIVE (see Task 36's live check — the solid host-option fill #252a47 is in the live CSS).
+
+### Task 38: Clearer dividers in the final Answer review (Nov 12, evening)
+
+William: "for the final answer review card can we have more clear dividers between each answer?" / "show me a screenshot after changes"
+
+- [x] The dividers were 1px `var(--border)` (#2c3152), barely visible against the card surface. Both are now the brighter `var(--border-strong)` (#3a4066), with a little more breathing room: answer rows (`.review-row`) 8px → 10px padding, question blocks (`.review-question`) 12px → 16px top padding. Each answer (the star's pick, then each guest) is now clearly separated from the next, and each question block is clearly separated from the next.
+- [x] Verified: `npm run build` passes. Screenshot `video-test/shot-review.png` (playground Final leaderboard, 5 questions) — the divider under each answer row and above each question block is plainly visible.
 - **Status**: implemented and verified locally; push pending the user's review.

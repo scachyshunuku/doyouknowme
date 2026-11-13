@@ -289,11 +289,11 @@ main.tv { max-width: 1680px; }
    size does not apply here). Each pick is a grid row: name right-aligned,
    answer left-aligned, points right-aligned — the star sits right of the
    name. Skipped questions stay in the list, marked Skipped, scoring 0. */
-.review-question { padding: 12px 0 4px; border-top: 1px solid var(--border); }
+.review-question { padding: 16px 0 8px; border-top: 1px solid var(--border-strong); }
 .review-question:first-of-type { border-top: 0; padding-top: 0; }
 .review-question .question-text { margin: 0 0 4px; font-size: 18px; line-height: 1.4; font-weight: 700; }
 .tv .review-question .question-text { font-size: 18px; line-height: 1.4; }
-.review-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.review-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border-strong); }
 .review-row:last-child { border-bottom: 0; }
 .review-name { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .review-answer { text-align: left; min-width: 0; overflow-wrap: break-word; }
