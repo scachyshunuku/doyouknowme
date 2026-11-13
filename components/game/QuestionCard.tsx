@@ -5,7 +5,7 @@
 import type { GameState } from "../../lib/use-game";
 
 export default function QuestionCard({ g }: { g: GameState }) {
-  const { game, questions, me, pendingPick, isHost, currentQuestion, currentAnswers, nonHostPlayers, myAnswer, questionText, displayOptions, busyAction, submitAnswer, showResults, skipQuestion } = g;
+  const { game, questions, me, pendingPick, isHost, currentQuestion, currentAnswers, submittedCount, nonHostPlayers, myAnswer, questionText, displayOptions, busyAction, submitAnswer, showResults, skipQuestion } = g;
   if (!game) return null;
   // Long text gets smaller fonts so a 300-char question or 150-char
   // options stay readable without pushing everything off-screen; long
@@ -40,7 +40,10 @@ export default function QuestionCard({ g }: { g: GameState }) {
               ))}
             </div>
           )}
-          <p><span className="pill" aria-live="polite">{currentAnswers.length}/{nonHostPlayers.length} answered</span></p>
+          {/* The count comes from the question row's submitted_count, not
+              from counting answer rows — unrevealed answers are hidden by
+              RLS (migration 0013), so currentAnswers is empty here. */}
+          <p><span className="pill" aria-live="polite">{submittedCount}/{nonHostPlayers.length} answered</span></p>
           {isHost && <div className="action-bar"><button className="secondary" onClick={showResults} disabled={busyAction !== null}>{busyAction === "results" ? "Revealing…" : "Reveal results"}</button><button className="secondary" onClick={skipQuestion} disabled={busyAction !== null}>{busyAction === "skip" ? "Skipping…" : "Skip question"}</button></div>}
         </div>
       )}

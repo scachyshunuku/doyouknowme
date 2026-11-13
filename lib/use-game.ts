@@ -62,8 +62,12 @@ export interface GameState {
   showJoin: boolean;
   currentQuestion: GameQuestion | null;
   currentAnswers: Answer[];
+  // How many players have answered the current question (from the
+  // question row's submitted_count trigger, migration 0013). The count
+  // pill and auto-advance use this, not currentAnswers.length, because
+  // unrevealed answers are hidden by RLS.
+  submittedCount: number;
   nonHostPlayers: Player[];
-  submittedIds: Set<string>;
   allSubmitted: boolean;
   myAnswer: Answer | undefined | null;
   totals: ReturnType<typeof computeTotals>;
@@ -151,6 +155,18 @@ export function useGame(code: string): GameState {
   // Optimistic pick: show the waiting screen the moment an option is tapped,
   // instead of waiting ~1s for the insert round-trip.
   const [pendingPick, setPendingPick] = useState<number | null>(null);
+  // My pick for the current question, remembered locally (migration 0013):
+  // unrevealed answers are hidden by RLS, so I cannot read my own answer
+  // back from the table to show the waiting screen. The pick is saved to
+  // localStorage when I submit, so a reload still shows the waiting screen
+  // instead of the options again. Keyed by game code + question id, so it
+  // never carries over to the next question.
+  const pickKey = (questionId: string) => `doyouknowme:pick:${code.toUpperCase()}:${questionId}`;
+  const [myPick, setMyPick] = useState<number | null>(null);
+  const saveMyPick = (questionId: string, optionIndex: number) => {
+    setMyPick(optionIndex);
+    try { localStorage.setItem(pickKey(questionId), String(optionIndex)); } catch { /* ignore */ }
+  };
   const autoAdvancedRef = useRef("");
   // Play again (Task 23): the replay code this client has already followed,
   // and whether the replay auto-join has run. Both guard against the
@@ -332,11 +348,23 @@ export function useGame(code: string): GameState {
   // the game would go with it).
   const showJoin = loaded && !!game && !me;
   const currentQuestion = game && questions.length > 0 ? questions[Math.min(game.current_question_index, questions.length - 1)] : null;
+  // Answers for the current question are hidden by RLS until Results
+  // (migration 0013), so currentAnswers is empty while the question is
+  // being answered — that is the point. The submitted count comes from
+  // the question row's submitted_count (kept by a trigger), not from
+  // counting answer rows. One answer per player per question is enforced
+  // by the UNIQUE constraint, so the count equals distinct submitters.
   const currentAnswers = currentQuestion ? answers.filter((a) => a.game_question_id === currentQuestion.id) : [];
+  const submittedCount = currentQuestion?.submitted_count ?? 0;
   const nonHostPlayers = players.filter((p) => p.role !== "host");
-  const submittedIds = new Set(currentAnswers.map((a) => a.player_id));
-  const allSubmitted = nonHostPlayers.length > 0 && nonHostPlayers.every((p) => submittedIds.has(p.id));
-  const myAnswer = currentQuestion ? currentAnswers.find((a) => a.player_id === myPlayerId) : null;
+  const allSubmitted = nonHostPlayers.length > 0 && submittedCount >= nonHostPlayers.length;
+  // My answer for the current question: the table row once it is revealed,
+  // otherwise the pick I remembered locally when I submitted (RLS hides my
+  // own unrevealed answer too, so the waiting screen cannot read it back).
+  // The synthetic row carries only option_index — that is all the waiting
+  // screen and the submit guard need.
+  const dbMyAnswer = currentQuestion ? currentAnswers.find((a) => a.player_id === myPlayerId) : null;
+  const myAnswer = dbMyAnswer ?? (myPick !== null && currentQuestion ? { id: "", game_id: game?.id ?? "", game_question_id: currentQuestion.id, player_id: myPlayerId ?? "", option_index: myPick, created_at: "" } as Answer : null);
   // Points for the current question stay hidden until its Results screen:
   // while a question is being answered, totals count only earlier questions.
   const countedQuestionIds = game?.status === "question" && currentQuestion
@@ -647,7 +675,7 @@ export function useGame(code: string): GameState {
 
   async function submitAnswer(optionIndex: number) {
     const sb = getSupabase();
-    if (!sb || !game || !currentQuestion || !me || me.role === "host" || myAnswer) return;
+    if (!sb || !game || !currentQuestion || !me || me.role === "host" || myAnswer || pendingPick !== null) return;
     setPendingPick(optionIndex);
     // A late tap must not score: re-read the game first and only insert
     // while this exact question is still being answered. (A stale tab, or
@@ -659,12 +687,38 @@ export function useGame(code: string): GameState {
       return setError("That question is already over.");
     }
     const { error: e } = await sb.from("answers").insert({ game_id: game.id, game_question_id: currentQuestion.id, player_id: me.id, option_index: optionIndex });
-    if (e) { setPendingPick(null); setError(e.message); } else await load();
+    if (e) {
+      setPendingPick(null);
+      // 23505 (unique game/question/player): I already submitted — e.g. a
+      // double-tap that slipped past the guard, or a reload after clearing
+      // localStorage. Treat it as submitted (the waiting screen shows the
+      // pick I just tapped; the score uses the row already in the table).
+      if ((e as { code?: string }).code === "23505") {
+        saveMyPick(currentQuestion.id, optionIndex);
+        await load();
+        return;
+      }
+      return setError(e.message);
+    }
+    // Remember the pick locally: unrevealed answers are hidden by RLS, so
+    // the waiting screen cannot read it back from the table.
+    saveMyPick(currentQuestion.id, optionIndex);
+    await load();
   }
 
   // Clear the optimistic pick when the question changes or the real answer lands.
   useEffect(() => { setPendingPick(null); }, [currentQuestion?.id]);
   useEffect(() => { if (myAnswer) setPendingPick(null); }, [myAnswer]);
+  // Restore my remembered pick for the current question (a reload after
+  // submitting). The key is per question, so nothing carries over.
+  useEffect(() => {
+    if (!currentQuestion) { setMyPick(null); return; }
+    try {
+      const raw = localStorage.getItem(pickKey(currentQuestion.id));
+      setMyPick(raw !== null && raw !== "" ? Number(raw) : null);
+    } catch { setMyPick(null); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestion?.id]);
 
   async function joinGame() {
     const sb = getSupabase();
@@ -852,8 +906,8 @@ export function useGame(code: string): GameState {
     showJoin,
     currentQuestion,
     currentAnswers,
+    submittedCount,
     nonHostPlayers,
-    submittedIds,
     allSubmitted,
     myAnswer,
     totals,

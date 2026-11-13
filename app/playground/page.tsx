@@ -15,15 +15,15 @@ import type { Answer, GameQuestion, Player } from "../../lib/types";
 // give design feedback. Nothing here writes to the database.
 
 const QUESTIONS: GameQuestion[] = [
-  { id: "q1", game_id: "mock", text: "What is {subject}'s favourite colour?", options: ["Red", "Blue", "Green", "Yellow"], order_index: 0, is_custom: false, skipped: false, created_by_player_id: null },
-  { id: "q2", game_id: "mock", text: "What is {subject}'s favourite animal?", options: ["Dog", "Cat", "Penguin", "Owl"], order_index: 1, is_custom: false, skipped: false, created_by_player_id: null },
+  { id: "q1", game_id: "mock", text: "What is {subject}'s favourite colour?", options: ["Red", "Blue", "Green", "Yellow"], order_index: 0, is_custom: false, skipped: false, created_by_player_id: null, submitted_count: 0 },
+  { id: "q2", game_id: "mock", text: "What is {subject}'s favourite animal?", options: ["Dog", "Cat", "Penguin", "Owl"], order_index: 1, is_custom: false, skipped: false, created_by_player_id: null, submitted_count: 0 },
   // Long-text preview: a near-max question (~280 chars) with near-max
   // options (~140 chars each), so the long-text UI (smaller fonts,
   // single-column host options, tap-to-expand on Results/review) is
   // previewable here instead of only in a live game.
-  { id: "q3", game_id: "mock", text: "Imagine {subject} is planning a surprise weekend trip for the whole group and can only pick one destination — which place would they choose if they wanted somewhere with great food, a beach nearby, and a city they have never visited before?", options: ["A quiet coastal town in Portugal with tiny seafood restaurants, long sandy beaches, and a historic old town to wander through in the evenings", "A busy city in Japan with incredible ramen shops on every corner, late-night markets, and day trips to hot springs in the mountains", "A mountain lodge in the Swiss Alps with cheese fondue every night, hiking trails right outside the door, and a lake for swimming in summer", "A tropical island in Thailand with street food stalls, snorkelling off white-sand beaches, and a night market full of handmade souvenirs"], order_index: 2, is_custom: false, skipped: false, created_by_player_id: null },
-  { id: "q4", game_id: "mock", text: "What snack would {subject} pick?", options: ["Chips", "Popcorn", "Fruit", "Chocolate"], order_index: 3, is_custom: false, skipped: false, created_by_player_id: null },
-  { id: "q5", game_id: "mock", text: "What is {subject}'s favourite season?", options: ["Spring", "Summer", "Autumn", "Winter"], order_index: 4, is_custom: false, skipped: false, created_by_player_id: null },
+  { id: "q3", game_id: "mock", text: "Imagine {subject} is planning a surprise weekend trip for the whole group and can only pick one destination — which place would they choose if they wanted somewhere with great food, a beach nearby, and a city they have never visited before?", options: ["A quiet coastal town in Portugal with tiny seafood restaurants, long sandy beaches, and a historic old town to wander through in the evenings", "A busy city in Japan with incredible ramen shops on every corner, late-night markets, and day trips to hot springs in the mountains", "A mountain lodge in the Swiss Alps with cheese fondue every night, hiking trails right outside the door, and a lake for swimming in summer", "A tropical island in Thailand with street food stalls, snorkelling off white-sand beaches, and a night market full of handmade souvenirs"], order_index: 2, is_custom: false, skipped: false, created_by_player_id: null, submitted_count: 0 },
+  { id: "q4", game_id: "mock", text: "What snack would {subject} pick?", options: ["Chips", "Popcorn", "Fruit", "Chocolate"], order_index: 3, is_custom: false, skipped: false, created_by_player_id: null, submitted_count: 0 },
+  { id: "q5", game_id: "mock", text: "What is {subject}'s favourite season?", options: ["Spring", "Summer", "Autumn", "Winter"], order_index: 4, is_custom: false, skipped: false, created_by_player_id: null, submitted_count: 0 },
 ];
 
 // Mock answers per question: [star, guest1, guest2] option indexes.
@@ -81,7 +81,7 @@ export default function Playground() {
     if (!isCustomQuestionComplete(addQ)) return setAddError("Fill in the question and all 4 choices.");
     if (hasDuplicateChoices(addQ)) return setAddError("Two choices are the same — make each choice different.");
     setAddError("");
-    setAddedMore((prev) => [...prev, { id: `added-${prev.length}`, game_id: "playground", text: addQ.question.trim(), options: addQ.choices.map((c) => c.trim()) as [string, string, string, string], order_index: QUESTIONS.length + prev.length, is_custom: true, skipped: false, created_by_player_id: null }]);
+    setAddedMore((prev) => [...prev, { id: `added-${prev.length}`, game_id: "playground", text: addQ.question.trim(), options: addQ.choices.map((c) => c.trim()) as [string, string, string, string], order_index: QUESTIONS.length + prev.length, is_custom: true, skipped: false, created_by_player_id: null, submitted_count: 0 }]);
     setAddQ(emptyCustomQuestion());
   }
   // The mock wizard mirrors the real one: a question is only accepted when

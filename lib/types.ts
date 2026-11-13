@@ -69,6 +69,11 @@ export interface GameQuestion {
   // The guest who added this question (customs only); used to enforce the
   // per-guest limit. Null for bank copies.
   created_by_player_id: string | null;
+  // How many players have answered this question. Maintained by a trigger
+  // on the answers table (migration 0013). The client reads this — not
+  // the answers rows — for the "N/M answered" count and auto-advance,
+  // because unrevealed answers are hidden by RLS.
+  submitted_count: number;
 }
 
 export interface Answer {
