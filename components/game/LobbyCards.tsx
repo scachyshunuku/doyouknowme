@@ -130,11 +130,8 @@ export default function LobbyCards({ g }: { g: GameState }) {
           </div>
           {/* The Start button lives here, at the bottom of the setup the
               host just configured — there is no separate "Lobby" panel.
-              The "Guests add…" note and the no-questions warning are
-              setup facts, so they live here too. */}
-          {effectiveLimit > 0 && (
-            <p>Guests add {effectiveLimit} question{effectiveLimit === 1 ? "" : "s"} each{questionsRequired ? " (required)" : ""} before the game starts.</p>
-          )}
+              The no-questions warning is a setup fact, so it lives here
+              too. */}
           {!effectivePackageId && effectiveLimit === 0 && <p>This game has no question package and guests can&apos;t add — pick a package or raise the limit.</p>}
           <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2 || (!effectivePackageId && effectiveLimit === 0)}>{busyStart ? "Starting…" : "Start game"}</button></div>
         </div>

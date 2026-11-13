@@ -607,4 +607,22 @@ William: "also for the host screen i dont like the arrangement. We should just h
 - [x] Lobby layout: a `.lobby-grid` wraps Players + Game setup. On a wide screen (min-width 768px) it is two columns — Game setup left, Players right. On a phone it is one column, Players first (so the host picks a star) then Game setup with the Start button below. A lone panel (a guest sees Players only) spans the full width.
 - [x] Mirrored in the playground lobby view (same grid, same Start-button placement; the mock "Lobby — code MOCK01" heading is now just "Players", the code row stays inside it).
 - [x] Verified: `npm run build` passes. Measured in the playground lobby — desktop 1280px: setup left 16px, players left 648px, same row; mobile 390px: single column, Players top 685px, setup top 1189px. Screenshots `video-test/shot-lobby-desktop.png` (setup left / players right) and `video-test/shot-lobby-mobile2.png` (one column, players first).
-- **Status**: implemented and verified locally; push pending the user's review (AGENTS.md: stop for review before pushing).
+- **Status**: PUSHED Nov 12 as commit `c177a3d` and VERIFIED LIVE (live chunk page-ab3d836582ae556a.js contains "lobby-grid", "card-players", "card-setup"; live CSS contains "lobby-grid" and "setup-label").
+
+### Task 36: Remove the "Guests add…" line; restore the gap above the lobby grid (Nov 12, evening)
+
+William: "'Guests add 1 question each before the game starts.' you can get rid of this in the lobby. Also if we have enough guests that expand the vertical bar of the lobby, does the game setup also expand or does it stay the same" + (screenshot) "there is no more padding between the game link and the panel"
+
+- [x] The "Guests add N questions each before the game starts." line is removed from the Game setup card (`components/game/LobbyCards.tsx`) and the playground mirror. The stepper already shows the per-guest number, so the line was redundant.
+- [x] The missing gap above the lobby was a Task 35 regression: `.lobby-grid > .card { margin: 0; }` removed the cards' normal 16px top margin, so the grid sat flush against the game-code row. Fixed by giving the grid itself the margin back: `.lobby-grid { margin: 16px 0; }` (the cards inside keep `margin: 0` so the two columns stay aligned). Measured on a real game lobby (390px): 20px between the code row and the grid.
+- [x] Stretch question, answered by measurement (not just by reading the CSS): YES, the Game setup panel stretches to match the Players panel. In the playground lobby on desktop, with 4 players both cards were 494px tall; after injecting 8 extra guest rows (12 players) both were 1072px. The grid's default `align-items` stretches both cards to the tallest one's height; the content stays top-aligned, so the shorter panel just gets empty space at the bottom. If William wants the setup panel to stay its own height instead, the fix is `align-items: start` on `.lobby-grid`.
+- **Status**: implemented and verified locally; push pending the user's review.
+
+### Task 37: Host question options use the guest button style (Nov 12, evening)
+
+William: "for the TV/host screen, can we make the question options to be the same style as the guests"
+
+- [x] The host's option tiles (`.host-option`) were transparent with a 2px dashed border, which read as draft placeholders next to the guests' solid filled buttons. They now use the same style as the guest buttons: solid `#252a47` fill, no border, 12px radius, letter chip on the left with the text beside it. Still read-only (a plain div, `cursor: default`, not a button), so nothing about them invites a tap.
+- [x] Kept the TV-appropriate sizing and layout: the host tiles stay larger (24px font, 22px padding) for TV distance and stay in a 2-column grid on a wide screen, while guests stay 1 column on a phone. Same style, scaled for the screen — the host tiles are bigger versions of the guest buttons, not a different design.
+- [x] Verified: `npm run build` passes. Screenshots `video-test/shot-host-options.png` (TV: solid 2-column tiles) and `video-test/shot-guest-options.png` (phone: solid 1-column buttons) — the fill, chip and text layout match.
+- **Status**: implemented and verified locally; push pending the user's review.

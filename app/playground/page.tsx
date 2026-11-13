@@ -227,9 +227,6 @@ export default function Playground() {
               </button>
             </div>
           </div>
-          {setupLimit > 0 && (
-            <p>Guests add {setupLimit} question{setupLimit === 1 ? "" : "s"} each{setupRequired ? " (required)" : ""} before the game starts.</p>
-          )}
           <div className="action-bar"><button onClick={() => { setQIndex(0); setGuestPicked(null); setView("host"); }}>Start game</button></div>
         </div>
         </div>

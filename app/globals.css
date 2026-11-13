@@ -65,7 +65,7 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
    setup card below. A lone panel (a guest sees Players only) spans the
    full width. The cards inside the grid keep their own margins at zero —
    the grid gap is the spacing. */
-.lobby-grid { display: grid; gap: 16px; }
+.lobby-grid { display: grid; gap: 16px; margin: 16px 0; }
 .lobby-grid > .card { margin: 0; }
 .lobby-grid > :only-child { grid-column: 1 / -1; }
 @media (min-width: 768px) {
@@ -185,11 +185,13 @@ main.tv { max-width: 1680px; }
 .tv h2 { font-size: 26px; }
 .tv .code { font-size: 48px; }
 .host-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
-/* Read-only on purpose: dashed border and flat fill, so the host's options
-   never read as tappable buttons. Flex row: the letter chip stays on the
-   left and the text wraps in its own column to its right, never underneath
-   the chip. */
-.host-option { display: flex; align-items: center; gap: 12px; background: transparent; border: 2px dashed var(--border-strong); border-radius: 14px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; min-width: 0; }
+/* Same style as the guest buttons: a solid filled tile, not a dashed
+   placeholder — the host's options should read as the same options the
+   guests see, just bigger for TV distance. Still read-only (cursor:
+   default, a plain div, not a button), so nothing about it invites a tap.
+   Flex row: the letter chip stays on the left and the text wraps in its
+   own column to its right, never underneath the chip. */
+.host-option { display: flex; align-items: center; gap: 12px; background: #252a47; border: 0; border-radius: 12px; padding: 22px; font-size: 24px; font-weight: 700; color: var(--text); cursor: default; min-width: 0; }
 .host-option .opt-text { flex: 1; min-width: 0; overflow-wrap: break-word; }
 /* Fixed square, flex-centred, so the letter sits dead-centre in the purple chip. */
 .opt-letter { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; padding: 0; line-height: 1; vertical-align: middle; background: #6c5ce7; border-radius: 8px; font-size: 18px; }
