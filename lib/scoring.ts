@@ -15,17 +15,26 @@ export interface RoundResult {
 }
 
 /**
- * Scoring, exactly as specified.
+ * Scoring, exactly as specified (dynamic star-match rule, confirmed by
+ * William Nov 13, 2026).
  *
  * - Majority is among all non-host answers submitted, INCLUDING the subject.
  *   The host never answers.
  * - A tie for majority: every tied option counts as majority, each gets +1.
- * - A guest gets +2 if their answer equals the subject's answer, +1 if
- *   their answer is a majority option. Maximum 3 per question.
+ * - A guest who matches the subject's answer gets dynamic star points
+ *   equal to the number of players who did NOT match the subject's
+ *   answer. "Players" = guests who submitted an answer for this question.
+ *   The subject and the host do not count as players, and non-submitters
+ *   do not count (they get 0 and are not votes).
+ * - A guest also gets +1 if their answer is a majority option. The +1
+ *   stacks on top of the dynamic star points.
+ * - There is NO maximum per question anymore (the old max of 3 is gone).
  * - The subject always scores 0 points, even if they match the majority.
  * - If the subject did not answer (host overrode to Results), no one can
  *   match the subject, so subject-match points are 0 for everyone, but
  *   majority +1 still applies.
+ * - If everyone who answered matches the subject, the dynamic star points
+ *   are 0, but the majority +1 still applies, so each matcher gets 1.
  */
 export function computeRoundResult(
   answers: Answer[],
@@ -46,6 +55,15 @@ export function computeRoundResult(
     : null;
   const subjectOption = subjectAnswer ? subjectAnswer.option_index : null;
 
+  // Dynamic star points: the number of guests who submitted an answer and
+  // did NOT match the subject's answer. The subject and host are not
+  // players; non-submitters are not counted (they get 0, not a vote).
+  const guestAnswers = nonHost.filter((a) => byId.get(a.player_id)?.role === "guest");
+  const dynamicStarPoints =
+    subjectOption === null
+      ? 0
+      : guestAnswers.filter((a) => a.option_index !== subjectOption).length;
+
   const pointsThisRound: Record<string, number> = {};
   const matchedSubject: Record<string, boolean> = {};
   const matchedMajority: Record<string, boolean> = {};
@@ -64,7 +82,8 @@ export function computeRoundResult(
     const isMajorityMatch = majorityOptions.includes(a.option_index);
     matchedSubject[a.player_id] = isSubjectMatch;
     matchedMajority[a.player_id] = isMajorityMatch;
-    pointsThisRound[a.player_id] = (isSubjectMatch ? 2 : 0) + (isMajorityMatch ? 1 : 0);
+    pointsThisRound[a.player_id] =
+      (isSubjectMatch ? dynamicStarPoints : 0) + (isMajorityMatch ? 1 : 0);
   }
   return { counts, majorityOptions, subjectOption, pointsThisRound, matchedSubject, matchedMajority };
 }

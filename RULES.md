@@ -95,9 +95,9 @@ No user accounts. Players are identified by name and a player id stored in local
 
 For each guest, per question:
 
-- Match the star: **+2 points**
-- Match the majority: **+1 point**
-- Maximum: **3 points** per question
+- Match the star: **dynamic points** — as many points as there were players who did *not* match the star's answer. "Players" means guests who submitted an answer for that question. The star and the host do not count as players, and non-submitters do not count.
+- Match the majority: **+1 point**, stacking on top of the dynamic star points.
+- **No maximum per question** (the old max of 3 is gone — confirmed by William Nov 13, 2026).
 - Star scores **0**. Host scores **0**.
 
 Majority is defined as the most-chosen option among all non-host answers submitted, **including the star**.
@@ -105,8 +105,9 @@ Majority is defined as the most-chosen option among all non-host answers submitt
 Edge cases:
 
 - **Tie for majority**: If two or more options tie for most-chosen, all tied options count as majority. Each gets +1. Confirmed by William Nov 7, 2026.
-- **Star did not answer**: If the host revealed Results before the star answered, no one gets the +2 for that question. The +1 majority point still applies.
-- **Star is the only answer**: The star's answer is also the majority, so a guest who matches the star gets +2 and +1, for 3 points.
+- **Star did not answer**: If the host revealed Results before the star answered, no one gets star points for that question. The +1 majority point still applies.
+- **Everyone matches the star**: The dynamic star points are 0, but the majority +1 still applies, so each matcher gets 1 point total.
+- **Star is the only answer**: The star's answer is also the majority. A guest who matches the star gets the dynamic star points plus +1 for majority.
 - **A player did not answer**: If the host reveals Results, anyone who has not submitted gets 0 for that question and does not count as a vote. Majority is calculated only over submitted answers.
 - **No answers at all**: No points are awarded. The host can move to the next question.
 
@@ -129,8 +130,10 @@ Edge cases:
 Question: "What is my favourite food?" Options: Pizza, Sushi, Tacos, Pasta.
 
 - Star picks Sushi.
-- Guests pick: Sushi, Sushi, Pizza, Pizza, Pizza.
-- Majority is Pizza (3 votes).
-- Guest who picked Sushi: +2 for matching the star, +0 for majority = 2 points.
+- 6 guests answer: Sushi, Sushi, Pizza, Pizza, Pizza, Pizza.
+- Majority is Pizza (4 votes; Sushi has 3 counting the star's pick).
+- Each guest who picked Sushi matches the star: 6 guests answered, 2 matched, so 4 did not — each matcher gets **4 star points**. Sushi is not the majority, so +0 for majority = **4 points** each.
 - Guests who picked Pizza: +0 for matching the star, +1 for majority = 1 point each.
 - Guest who picked Tacos, if any: 0 points.
+
+So the rarer the correct guess, the more it is worth: a lone matcher among 6 guests would get 5 star points, while if all 6 matched, each would get 0 star points + 1 for majority = 1 point. (Note the star's own answer counts toward the majority, so a 2–3 split among guests can tie for majority — in that case the matchers also get the +1.)

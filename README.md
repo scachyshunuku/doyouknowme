@@ -15,11 +15,12 @@ A simple party game. Join a game with a 6-letter code. One host, one subject (th
 4. Host hits Start Game. The app copies that package's questions, in defined order, into the game. No random pick, no fixed count, no shuffle.
 5. **Question stage:** the question and 4 answers are on screen. Everyone except the host picks an answer, including the subject. The host does nothing here and cannot see any player's chosen answer, including the subject's, until Results. After a player answers, they go to a waiting screen ("Answer locked in. Waiting for everyone else…") with no option to go back or change the answer.
 6. **Results stage:** shown automatically when everyone non-host has submitted, or when the host hits Override to Results. Per-answer counts are shown, with the subject's pick and the majority pick marked.
-   - Match the subject: +2 points
-   - Match the majority: +1 point
-   - Maximum 3 points per question. Subject scores 0, host scores 0.
+   - Match the subject: dynamic points — as many points as there were players (guests who submitted an answer) who did NOT match the subject's answer
+   - Match the majority: +1 point, stacking on top of the dynamic subject points
+   - No maximum per question (the old max of 3 is gone — confirmed by William Nov 13, 2026). Subject scores 0, host scores 0.
    - Majority is among all non-host answers submitted, including the subject. If two or more options tie for most-chosen, all tied options count as majority.
-   - If the subject did not answer before the host overrode to Results, no one gets the +2, but the +1 majority point still applies.
+   - If the subject did not answer before the host overrode to Results, no one gets subject points, but the +1 majority point still applies.
+   - If everyone who answered matches the subject, the dynamic points are 0, but the majority +1 still applies.
    - Players who did not answer get 0 for that question and do not count as a vote.
 7. Host hits Next Question to go back to stage 5, until all questions are done.
 8. **Final leaderboard:** total points, plus a separate stat for most matches with the subject (count, not points). Ties are shown together.

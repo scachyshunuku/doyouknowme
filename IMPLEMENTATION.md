@@ -78,7 +78,7 @@ These tasks must be completed first as they unblock other work.
 ### Task 2.1: Scoring
 
 - [x] Create `lib/scoring.ts`:
-  - `scoreQuestion()` - per-player points for one question, +2 subject match, +1 majority match, max 3
+  - `scoreQuestion()` - per-player points for one question, dynamic subject match (points = number of players who did not match the subject), +1 majority match, no maximum per question
   - `majorityOptions()` - option indexes tied for most-chosen, including the subject
   - `totalPoints()` - running totals across questions
   - `subjectMatches()` - count of matches with the subject, for the final stat
@@ -595,7 +595,7 @@ William: "in lobby, 'Question bank' should just be 'Questions'. Also the text sh
 - [x] Everything below the headings shrank a little: bank rows 15px → 14px, min-height 44px → 40px, padding 10px → 8px, count 13px → 12px; setup rows 16px → 15px, padding 12px → 10px; stepper buttons 40px → 36px, value 20px → 18px.
 - [x] The two Custom-questions rows are now the same size (both `min-height: 58px`, same padding, same font). The "Per guest" row was taller because its stepper was 40px while the switch row's control is 30px. The switch label was also shortened from "Require each guest to add their questions" to "Require guests to add questions" so it fits on one line on a phone instead of wrapping and pushing its row taller.
 - [x] Verified: `npm run build` passes; measured in the playground lobby (390px phone): "Per guest" row 58px, switch row 58px (was 58px vs 62px before the label shortening). Screenshot `video-test/shot-setup-card4.png`.
-- **Status**: implemented and verified locally; push pending.
+- **Status**: PUSHED Nov 12 as commit `98e5cbd` and VERIFIED LIVE.
 
 ### Task 35: Lobby layout — setup left / players right, no "Lobby" panel (Nov 12, evening)
 
@@ -633,7 +633,7 @@ William: "for the final answer review card can we have more clear dividers betwe
 
 - [x] The dividers were 1px `var(--border)` (#2c3152), barely visible against the card surface. Both are now the brighter `var(--border-strong)` (#3a4066), with a little more breathing room: answer rows (`.review-row`) 8px → 10px padding, question blocks (`.review-question`) 12px → 16px top padding. Each answer (the star's pick, then each guest) is now clearly separated from the next, and each question block is clearly separated from the next.
 - [x] Verified: `npm run build` passes. Screenshot `video-test/shot-review.png` (playground Final leaderboard, 5 questions) — the divider under each answer row and above each question block is plainly visible.
-- **Status**: implemented and verified locally; push pending the user's review.
+- **Status**: PUSHED Nov 12 as commit `90b31a9` and VERIFIED LIVE (live CSS 0a85099fa5c73fcc.css contains `.review-row` with `padding:10px 0;border-bottom:1px solid var(--border-strong)` and `.review-question` with `padding:16px 0 8px;border-top:1px solid var(--border-strong)`).
 
 ### Task 39: Answer visibility — nobody can read who picked what before Results (Nov 12, evening)
 
@@ -644,4 +644,4 @@ William: "can you do another pass at security? I want to make sure nobody can fi
 - [x] Client (`lib/use-game.ts`, `lib/types.ts`, `components/game/QuestionCard.tsx`): the "N/M answered" pill and auto-advance now use `currentQuestion.submitted_count` (one answer per player per question is enforced by the UNIQUE constraint, so the count equals distinct submitters); `myAnswer` falls back to the pick remembered locally (state + localStorage, keyed by game code + question id) because the client can no longer read its own unrevealed answer back; `submitAnswer` guards on `pendingPick` too and treats a 23505 unique-violation as "already submitted" (the waiting screen shows; the score uses the row already in the table). `submittedIds` is removed (unused once the count replaces it). Mock `GameQuestion`s in the playground gain `submitted_count: 0`.
 - [x] Verified end-to-end on the local client against the live (migrated) DB, game TU3EXN: (1) Sam's waiting screen shows "Answer locked in" after submitting; (2) the pill reads "1/2 answered"; (3) an outsider REST read of `answers` BEFORE reveal returns `[]`; (4) `submitted_count` for Q0 is 1; (5) Sam's waiting screen survives a reload (localStorage pick); (6) Julie's submit auto-advances to Results; (7) an outsider REST read AFTER reveal returns both answers. Game ZRQA3H: the Results screen shows the vote counts ("1 (50%)"), the star's pick, and "Points this round". The earlier "host results show votes: false" was a bad regex in the check (the format is "1 (50%)", not "1 vote"), not a product bug.
 - [x] Note: the migration and the client are a matched pair — the live DB was migrated first, so the OLD live client (which counts answer rows) would show "0/N answered" and never auto-advance until this client ships. Push this client promptly.
-- **Status**: migration applied live; client implemented and verified locally; push pending the user's review.
+- **Status**: migration applied live; client PUSHED Nov 12 as commit `6a480dd` and VERIFIED LIVE (live chunk page-a23e06025fbab486.js contains "submitted_count", "doyouknowme:pick" and "submittedCount").
