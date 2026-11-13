@@ -59,6 +59,20 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 /* Game setup controls: pick a bank from a scrollable list (no dropdown,
    no checkbox that disables the select above it), set the per-guest count
    with a stepper, and flip "Require…" with a real toggle switch. */
+/* Lobby layout (Task 35): on a wide screen Game setup sits on the left
+   and Players on the right; on a phone they stack one column, players
+   first so the host picks a star before reaching the Start button in the
+   setup card below. A lone panel (a guest sees Players only) spans the
+   full width. The cards inside the grid keep their own margins at zero —
+   the grid gap is the spacing. */
+.lobby-grid { display: grid; gap: 16px; }
+.lobby-grid > .card { margin: 0; }
+.lobby-grid > :only-child { grid-column: 1 / -1; }
+@media (min-width: 768px) {
+  .lobby-grid { grid-template-columns: 1fr 1fr; }
+  .lobby-grid .card-setup { order: 1; }
+  .lobby-grid .card-players { order: 2; }
+}
 /* Game setup section headings ("Questions", "Custom questions"): a real
    header — bigger, bolder and brighter than the rows beneath it. The
    plain `label` style (14px, muted) reads as a field caption, not a

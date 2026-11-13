@@ -596,3 +596,15 @@ William: "in lobby, 'Question bank' should just be 'Questions'. Also the text sh
 - [x] The two Custom-questions rows are now the same size (both `min-height: 58px`, same padding, same font). The "Per guest" row was taller because its stepper was 40px while the switch row's control is 30px. The switch label was also shortened from "Require each guest to add their questions" to "Require guests to add questions" so it fits on one line on a phone instead of wrapping and pushing its row taller.
 - [x] Verified: `npm run build` passes; measured in the playground lobby (390px phone): "Per guest" row 58px, switch row 58px (was 58px vs 62px before the label shortening). Screenshot `video-test/shot-setup-card4.png`.
 - **Status**: implemented and verified locally; push pending.
+
+### Task 35: Lobby layout — setup left / players right, no "Lobby" panel (Nov 12, evening)
+
+William: "also for the host screen i dont like the arrangement. We should just have the players panel on the right side and the game setup on the left (we can make it one column on mobile). Also for guest screens and host screen in general, the lobby panel seems wrong. The lobby is the whole page so we dont really need that panel"
+
+- [x] The separate "Lobby" panel (the card with the `<h2>Lobby</h2>` heading, the Start button and the waiting line) is gone — the lobby is the whole page, so a panel named "Lobby" is redundant.
+- [x] The Start button now lives at the bottom of the Game setup card, under the setup the host just configured. The "Guests add N questions each…" note and the no-questions warning moved there too (they are setup facts). The Start button's disabled conditions are unchanged (no star, fewer than 2 players, no package and limit 0).
+- [x] The guest waiting line ("Waiting for the host to start…" / "Waiting for the host to pick a star and start…") now lives at the bottom of the Players card, so guests still see it without a Lobby panel.
+- [x] Lobby layout: a `.lobby-grid` wraps Players + Game setup. On a wide screen (min-width 768px) it is two columns — Game setup left, Players right. On a phone it is one column, Players first (so the host picks a star) then Game setup with the Start button below. A lone panel (a guest sees Players only) spans the full width.
+- [x] Mirrored in the playground lobby view (same grid, same Start-button placement; the mock "Lobby — code MOCK01" heading is now just "Players", the code row stays inside it).
+- [x] Verified: `npm run build` passes. Measured in the playground lobby — desktop 1280px: setup left 16px, players left 648px, same row; mobile 390px: single column, Players top 685px, setup top 1189px. Screenshots `video-test/shot-lobby-desktop.png` (setup left / players right) and `video-test/shot-lobby-mobile2.png` (one column, players first).
+- **Status**: implemented and verified locally; push pending the user's review (AGENTS.md: stop for review before pushing).

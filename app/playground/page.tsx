@@ -184,8 +184,9 @@ export default function Playground() {
       </div>
 
       {view === "lobby" && (
-        <div className="card">
-          <h2>Lobby — code MOCK01</h2>
+        <div className="lobby-grid">
+        <div className="card card-players">
+          <h2>Players</h2>
           <div className="code-row">
             <div className="code">MOCK01</div>
             <button className="small secondary" onClick={() => { setCopied(true); window.setTimeout(() => setCopied(false), 2000); }}>{copied ? "Copied ✓" : "Copy invite link"}</button>
@@ -198,10 +199,8 @@ export default function Playground() {
             </div>
           ))}
         </div>
-      )}
 
-      {view === "lobby" && (
-        <div className="card">
+        <div className="card card-setup">
           <h2>Game setup</h2>
           <div className="field">
             <label className="setup-label">Questions</label>
@@ -231,13 +230,8 @@ export default function Playground() {
           {setupLimit > 0 && (
             <p>Guests add {setupLimit} question{setupLimit === 1 ? "" : "s"} each{setupRequired ? " (required)" : ""} before the game starts.</p>
           )}
-        </div>
-      )}
-
-      {view === "lobby" && (
-        <div className="card">
-          <h2>Lobby</h2>
           <div className="action-bar"><button onClick={() => { setQIndex(0); setGuestPicked(null); setView("host"); }}>Start game</button></div>
+        </div>
         </div>
       )}
 

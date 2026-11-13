@@ -7,10 +7,16 @@ import type { GameState } from "../../lib/use-game";
 export default function LobbyCards({ g }: { g: GameState }) {
   const { game, players, busyStart, busySubjectId, packages, packagesLoaded, lobbyPackageId, isHost, effectivePackageId, customOnly, questionsRequired, effectiveLimit, updateGame, selectSubject, startGame, setSetupPackageId, setSetupLimit, setSetupRequired, setLobbyPackageId } = g;
   if (!game) return null;
+  // The lobby is the whole page, so there is no separate "Lobby" panel —
+  // the Start button lives in Game setup and the waiting line lives in
+  // Players. On a wide screen the two panels sit side by side (setup
+  // left, players right); on a phone they stack, players first so the
+  // host picks a star before reaching the Start button below.
   return (
     <>
       {game.status === "lobby" && (
-      <div className="card">
+      <div className="lobby-grid">
+      <div className="card card-players">
         <h2>Players</h2>
         {players.map((p) => (
           <div className="row player-row" key={p.id}>
@@ -23,11 +29,11 @@ export default function LobbyCards({ g }: { g: GameState }) {
           </div>
         ))}
         {players.length === 0 && <p>No players yet.</p>}
+        {!isHost && <p>{game.subject_player_id ? "Waiting for the host to start…" : "Waiting for the host to pick a star and start…"}</p>}
       </div>
-      )}
 
-      {game.status === "lobby" && isHost && (
-        <div className="card">
+      {isHost && (
+        <div className="card card-setup">
           <h2>Game setup</h2>
           <div className="field">
             <label className="setup-label">Questions</label>
@@ -122,22 +128,18 @@ export default function LobbyCards({ g }: { g: GameState }) {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {game.status === "lobby" && (
-        <div className="card">
-          <h2>Lobby</h2>
-          {isHost && effectiveLimit > 0 && (
+          {/* The Start button lives here, at the bottom of the setup the
+              host just configured — there is no separate "Lobby" panel.
+              The "Guests add…" note and the no-questions warning are
+              setup facts, so they live here too. */}
+          {effectiveLimit > 0 && (
             <p>Guests add {effectiveLimit} question{effectiveLimit === 1 ? "" : "s"} each{questionsRequired ? " (required)" : ""} before the game starts.</p>
           )}
-          {isHost ? (
-            <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2 || (!effectivePackageId && effectiveLimit === 0)}>{busyStart ? "Starting…" : "Start game"}</button></div>
-          ) : (
-            <p>{game.subject_player_id ? "Waiting for the host to start…" : "Waiting for the host to pick a star and start…"}</p>
-          )}
-          {!effectivePackageId && effectiveLimit === 0 && <p>This game has no question package and guests can&apos;t add  — pick a package or raise the limit.</p>}
+          {!effectivePackageId && effectiveLimit === 0 && <p>This game has no question package and guests can&apos;t add — pick a package or raise the limit.</p>}
+          <div className="action-bar"><button onClick={startGame} disabled={busyStart || !game.subject_player_id || players.length < 2 || (!effectivePackageId && effectiveLimit === 0)}>{busyStart ? "Starting…" : "Start game"}</button></div>
         </div>
+      )}
+      </div>
       )}
     </>
   );
