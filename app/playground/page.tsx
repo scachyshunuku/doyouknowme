@@ -204,15 +204,15 @@ export default function Playground() {
         <div className="card">
           <h2>Game setup</h2>
           <div className="field">
-            <label>Question bank</label>
-            <div className="bank-list" role="radiogroup" aria-label="Question bank">
+            <label className="setup-label">Questions</label>
+            <div className="bank-list" role="radiogroup" aria-label="Questions">
               <button type="button" role="radio" aria-checked={setupCustomOnly} className={setupCustomOnly ? "bank-row active" : "bank-row"} onClick={() => setSetupPackageId(null)}><span>Custom only</span></button>
               <button type="button" role="radio" aria-checked={setupPackageId === "mock-pkg"} className={setupPackageId === "mock-pkg" ? "bank-row active" : "bank-row"} onClick={() => setSetupPackageId("mock-pkg")}><span>Get to Know Me — General</span><span className="count">10 questions</span></button>
               <button type="button" role="radio" aria-checked={setupPackageId === "mock-test"} className={setupPackageId === "mock-test" ? "bank-row active" : "bank-row"} onClick={() => setSetupPackageId("mock-test")}><span>Test Package — Test</span><span className="count">5 questions</span></button>
             </div>
           </div>
           <div className="field">
-            <label>Custom questions</label>
+            <label className="setup-label">Custom questions</label>
             <div className="setup-row">
               <span>Per guest</span>
               <span className="stepper">
@@ -222,8 +222,8 @@ export default function Playground() {
               </span>
             </div>
             <div className="switch-row">
-              <span>Require each guest to add their questions</span>
-              <button type="button" role="switch" aria-checked={setupRequired} aria-label="Require each guest to add their questions" disabled={setupLimit === 0} className={setupRequired ? "switch on" : "switch"} onClick={() => setSetupRequired(!setupRequired)}>
+              <span>Require guests to add questions</span>
+              <button type="button" role="switch" aria-checked={setupRequired} aria-label="Require guests to add questions" disabled={setupLimit === 0} className={setupRequired ? "switch on" : "switch"} onClick={() => setSetupRequired(!setupRequired)}>
                 <span className="knob" />
               </button>
             </div>

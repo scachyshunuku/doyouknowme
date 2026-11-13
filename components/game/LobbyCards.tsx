@@ -30,13 +30,13 @@ export default function LobbyCards({ g }: { g: GameState }) {
         <div className="card">
           <h2>Game setup</h2>
           <div className="field">
-            <label>Question bank</label>
+            <label className="setup-label">Questions</label>
             {/* A scrollable list, not pills: pills wrap into a wall once
                 the bank grows past a handful of packages, while a list
                 takes the same bounded height for 3 packages or 30 (it
                 scrolls). "Custom only" is pinned first so it never
                 scrolls out of reach. */}
-            <div className="bank-list" role="radiogroup" aria-label="Question bank">
+            <div className="bank-list" role="radiogroup" aria-label="Questions">
               <button
                 type="button"
                 role="radio"
@@ -70,7 +70,7 @@ export default function LobbyCards({ g }: { g: GameState }) {
             {packages.length === 0 && <p className="muted">{packagesLoaded ? "No question packages found. Run supabase/seed_packages.sql in Supabase." : "Loading packages…"}</p>}
           </div>
           <div className="field">
-            <label>Custom questions</label>
+            <label className="setup-label">Custom questions</label>
             <div className="setup-row">
               <span>Per guest</span>
               {/* A stepper, not a dropdown: the number is the thing, and
@@ -105,12 +105,12 @@ export default function LobbyCards({ g }: { g: GameState }) {
               </span>
             </div>
             <div className="switch-row">
-              <span>Require each guest to add their questions</span>
+              <span>Require guests to add questions</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={questionsRequired}
-                aria-label="Require each guest to add their questions"
+                aria-label="Require guests to add questions"
                 disabled={effectiveLimit === 0}
                 className={questionsRequired ? "switch on" : "switch"}
                 onClick={async () => {

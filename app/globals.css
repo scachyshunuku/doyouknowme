@@ -59,23 +59,35 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 /* Game setup controls: pick a bank from a scrollable list (no dropdown,
    no checkbox that disables the select above it), set the per-guest count
    with a stepper, and flip "Require…" with a real toggle switch. */
+/* Game setup section headings ("Questions", "Custom questions"): a real
+   header — bigger, bolder and brighter than the rows beneath it. The
+   plain `label` style (14px, muted) reads as a field caption, not a
+   section, and the rows below it were larger than the heading. */
+.setup-label { display: block; font-size: 16px; font-weight: 700; color: #fff; margin: 12px 0 6px; }
 /* Bank list: one row per bank, plus "Custom only" pinned first. A list —
    not pills — because pills wrap into a wall once the bank grows past a
    handful of packages, while a list takes the same bounded height for 3
-   packages or 30 (it scrolls). The selected row is the accent fill. */
+   packages or 30 (it scrolls). The selected row is the accent fill. The
+   rows are kept compact (14px) so the heading above them reads as the
+   header, not the other way round. */
 .bank-list { display: flex; flex-direction: column; gap: 4px; max-height: 212px; overflow-y: auto; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 12px; padding: 4px; }
-.bank-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 44px; margin-top: 0; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
-.bank-row .count { color: var(--text-muted); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.bank-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 40px; margin-top: 0; padding: 8px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+.bank-row .count { color: var(--text-muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .bank-row.active { background: var(--accent); color: #fff; }
 .bank-row.active .count { color: rgba(255, 255, 255, 0.85); }
-/* The per-guest row: label on the left, stepper on the right. */
-.setup-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #12152a; font-size: 16px; color: var(--text); }
+/* The two Custom-questions rows share one size (min-height 58px, same
+   padding, same font), so neither reads larger than the other. The
+   stepper used to be 40px, which made the "Per guest" row taller than
+   the switch row; it is now 36px to match. The switch label is kept
+   short enough to fit on one line, so it never wraps and pushes its row
+   taller on a phone. */
+.setup-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #12152a; font-size: 15px; color: var(--text); }
 .stepper { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.stepper button { width: 40px; min-height: 40px; margin-top: 0; padding: 0; border-radius: 10px; background: var(--border); font-size: 22px; font-weight: 700; line-height: 1; box-shadow: none; }
+.stepper button { width: 36px; min-height: 36px; margin-top: 0; padding: 0; border-radius: 10px; background: var(--border); font-size: 20px; font-weight: 700; line-height: 1; box-shadow: none; }
 .stepper button:disabled { opacity: 0.35; }
-.stepper-value { min-width: 36px; text-align: center; font-size: 20px; font-weight: 700; color: #fff; }
+.stepper-value { min-width: 36px; text-align: center; font-size: 18px; font-weight: 700; color: #fff; }
 /* Toggle switch row: label on the left, a sliding switch on the right. */
-.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; background: #12152a; font-size: 16px; color: var(--text); }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 10px 12px; margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; background: #12152a; font-size: 15px; color: var(--text); }
 .switch-row:has(.switch:disabled) { opacity: 0.5; }
 .switch { position: relative; width: 52px; min-width: 52px; min-height: 30px; margin-top: 0; padding: 0; border-radius: 999px; background: #2c3152; box-shadow: none; }
 .switch.on { background: var(--accent); }
