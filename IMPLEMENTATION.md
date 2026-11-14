@@ -663,7 +663,7 @@ William: "can we make it so the questions are not shuffled but the options are" 
 - [x] Custom questions still shuffle: no code change needed — `finish_contribution` (migration 0010) already assigns the custom block in `row_number() over (order by random())` order, right after the bank. Verified live below.
 - [x] Docs updated to the new rule: `RULES.md` (Terminology + Question Packages sections), `ARCHITECTURE.md` (Game + Question Package Selection), `AGENTS.md` (Question Packages rule), `supabase/seed_julie_package.sql` header comment (package order is now also the play order). `README.md` already said "in defined order… no shuffle" and needed no change.
 - [x] Verified: `npm run build` passes. Playwright `video-test/verify-task41-order.mjs` against the local client + live DB: game YLT9PK (Test Package, 5 questions) — the played order matches the package's defined order exactly; Q0's shown options (Yellow, Blue, Red, Green) differ from the bank order (Red, Blue, Green, Yellow); game L38TVA (custom-only, 6 customs from 3 guests) — `finish_contribution` returned true and the final custom order (3, 4, 6, 5, 1, 2) differs from insertion order (1–6).
-- **Status**: implemented and verified locally; push pending the user's review. No migration — the change is client + docs only.
+- **Status**: PUSHED Nov 14 as commit `4878959` (with Task 42) and VERIFIED LIVE (live game WW9PV5, Test Package — played order matches the package's defined order exactly; live chunk page-fe255c3fa86c1ed3.js contains 0 "shuffleArray"). No migration — client + docs only.
 
 ### Task 42: Star's pick is always the highlighted top one in Results (Nov 14)
 
@@ -673,4 +673,4 @@ William: "for the results, can we highlight the star's pick as the top one alway
 - [x] The "— {star}'s pick" subtext is gone. The star's pick shows just "★ " beside the option text. "— your pick" still shows for the viewer's own pick.
 - [x] `maxResultCount` is removed from `GameState` (`lib/use-game.ts`) — nothing computes the most-voted highlight any more. Mirrored in the playground (`app/playground/page.tsx`, `maxCount` removed, fixture comment updated): Q2 is still the deliberate case — the star picks Cat (1 vote) while the guests agree on Dog (2 votes) — and now Cat is the gold one.
 - [x] Verified: `npm run build` passes. Screenshot `video-test/shot-star-pick-results.png` (playground Results, Q2): Dog 2 (67%) plain, ★ Cat 1 (33%) gold, no "'s pick" text on the page.
-- **Status**: implemented and verified locally; push pending the user's review.
+- **Status**: PUSHED Nov 14 as commit `4878959` (with Task 41) and VERIFIED LIVE (live playground Results Q2: Dog 2 (67%) plain, ★ Cat 1 (33%) gold, no "'s pick" text; live chunk page-fe255c3fa86c1ed3.js contains 0 "'s pick").
