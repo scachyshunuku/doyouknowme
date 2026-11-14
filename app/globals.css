@@ -84,7 +84,14 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
    packages or 30 (it scrolls). The selected row is the accent fill. The
    rows are kept compact (14px) so the heading above them reads as the
    header, not the other way round. */
-.bank-list { display: flex; flex-direction: column; gap: 4px; max-height: 212px; overflow-y: auto; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 12px; padding: 4px; }
+.bank-list { display: flex; flex-direction: column; gap: 4px; max-height: 212px; overflow-y: auto; margin-top: 4px; border: 1px solid var(--border-strong); border-radius: 12px; padding: 4px; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+/* Themed scrollbar for the bank list: thin, rounded, dark — the native
+   light-grey scrollbar with arrow buttons clashed with the dark theme. */
+.bank-list::-webkit-scrollbar { width: 6px; }
+.bank-list::-webkit-scrollbar-track { background: transparent; }
+.bank-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+.bank-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+.bank-list::-webkit-scrollbar-button { display: none; }
 .bank-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 40px; margin-top: 0; padding: 8px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
 .bank-row .count { color: var(--text-muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .bank-row.active { background: var(--accent); color: #fff; }

@@ -135,8 +135,8 @@ export default function Home() {
         <ol className="steps">
           <li><strong>Host starts a game.</strong> In the lobby, the host picks the question bank, sets how many questions each guest may add and whether they&apos;re required.</li>
           <li><strong>Guests join with the code.</strong> The host picks one guest as the star.</li>
-          <li><strong>When the host starts, everyone adds their questions first</strong> — one question at a time, then the game begins.</li>
-          <li><strong>Everyone except the host answers</strong>, including the star. After answering you go to a waiting screen and cannot change it. The host cannot see anyone&apos;s answer until Results.</li>
+          <li><strong>Everyone adds custom questions before the game starts.</strong></li>
+          <li><strong>Everyone except the host answers, including the star.</strong></li>
           <li><strong>Results:</strong> match the star and you score as many points as there were players who didn&apos;t match the star — the rarer your correct guess, the more it&apos;s worth. Match the majority for +1 on top. There&apos;s no cap per question. Players who did not answer get 0 and do not count as a vote.</li>
           <li><strong>The game ends after all questions are answered.</strong> Highest scorer wins.</li>
         </ol>
