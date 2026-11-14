@@ -1,92 +1,91 @@
--- DRAFT — NOT APPLIED. Do not run without William's explicit approval
--- (repo AGENTS.md: stop for review before applying any SQL).
--- Seed the "How Well Do You Know Julie?" package for doyouknowme.
+-- APPLIED Nov 14, 2026 to Supabase project fmmsnucnfuvyjkgszqjn (doyouknowme),
+-- verified: package "For Julie" with 10 questions in order 0–9.
+-- Safe to re-run: every insert is guarded by `not exists`.
+-- Seed the "For Julie" package for doyouknowme.
 -- Source of truth for the wording: workspace/goals/doyouknowme-party-game/files/julie-question-list.md
--- (8 questions confirmed Nov 8, 2026; Q4 still needs William's pick, A/B/C/D).
+-- (10 questions confirmed; reordered Nov 14, 2026 to 9, 1, 2, 3, 6, 4, 5, 10, 8, 7.)
 --
 -- Notes:
 -- * Follows supabase/seed_packages.sql pattern: every insert is guarded by
 --   `not exists`, so it is safe to re-run.
--- * Package order here is the seed order. At Start the game copies the
---   package into the game and shuffles the bank copy once (Task 13), so
---   play order is shuffled, not this file's order.
+-- * Package order here is the seed order, and it is also the play order:
+--   at Start the game copies the package into the game in this order
+--   (bank questions play in package order since Task 41).
 -- * Limits after migration 0011: question text <= 300 chars, each option
 --   <= 150 chars, exactly 4 options. All questions below are far under.
 -- * "Tom San Ramen" is kept verbatim from William's list (ramen, not sushi).
 
 -- Package
 insert into public.question_packages (name)
-select 'How Well Do You Know Julie?'
-where not exists (select 1 from public.question_packages where name = 'How Well Do You Know Julie?');
+select 'For Julie'
+where not exists (select 1 from public.question_packages where name = 'For Julie');
 
--- Q1 — favourite sushi place locally
+-- Q1 — favourite vegetable
 insert into public.questions (text, options)
-select 'What is {subject}''s favourite sushi place locally?', '["Tom San Ramen", "Amami Sushi", "Ultra Sushi", "Megamart"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is {subject}''s favourite sushi place locally?');
+select 'What is {star}''s favourite vegetable?', '["Tomato", "Napa cabbage", "Corn", "Eggplant"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {star}''s favourite vegetable?');
 
--- Q2 — favourite country for city life
+-- Q2 — favourite local sushi place
 insert into public.questions (text, options)
-select 'What is {subject}''s favourite country for city life?', '["China", "Thailand", "Japan", "Vietnam"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is {subject}''s favourite country for city life?');
+select 'What is {star}''s favourite local sushi place?', '["Tom San Ramen", "Amami Sushi", "Ultra Sushi", "Mega Mart"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {star}''s favourite local sushi place?');
 
--- Q3 — favourite country for nature
+-- Q3 — favourite country for city life
 insert into public.questions (text, options)
-select 'What is {subject}''s favourite country for nature?', '["New Zealand", "Norway", "Iceland", "Australia"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is {subject}''s favourite country for nature?');
+select 'What is {star}''s favourite country for city life?', '["China", "Thailand", "Japan", "Vietnam"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {star}''s favourite country for city life?');
 
--- Q4 — which one to give up when travelling? PICK ONE VERSION (A/B/C/D), uncomment it, delete the rest.
--- Version A — comforts
--- insert into public.questions (text, options)
--- select 'What would {subject} give up first when travelling?', '["A good night''s sleep", "Good food", "A hot shower", "WiFi"]'::jsonb
--- where not exists (select 1 from public.questions where text = 'What would {subject} give up first when travelling?');
--- Version B — flight / logistics
--- insert into public.questions (text, options)
--- select 'What would {subject} give up first when travelling?', '["A window seat", "A checked bag", "A direct flight", "Lounge access"]'::jsonb
--- where not exists (select 1 from public.questions where text = 'What would {subject} give up first when travelling?');
--- Version C — daily habits
--- insert into public.questions (text, options)
--- select 'What would {subject} give up first when travelling?', '["Coffee", "Her skincare routine", "Snacks", "Phone charging / screen time"]'::jsonb
--- where not exists (select 1 from public.questions where text = 'What would {subject} give up first when travelling?');
--- Version D — food & routine
--- insert into public.questions (text, options)
--- select 'What would {subject} give up first when travelling?', '["Eating on schedule", "Working out", "Her usual bedtime", "Familiar food"]'::jsonb
--- where not exists (select 1 from public.questions where text = 'What would {subject} give up first when travelling?');
-
--- Q5 — ideal bedtime
+-- Q4 — favourite country for nature
 insert into public.questions (text, options)
-select 'What is {subject}''s ideal bedtime?', '["10:00pm", "10:30pm", "11:00pm", "11:30pm"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What is {subject}''s ideal bedtime?');
+select 'What is {star}''s favourite country for nature?', '["New Zealand", "Norway", "Iceland", "Switzerland"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {star}''s favourite country for nature?');
 
--- Q6 — worst thing about a hotel stay
+-- Q5 — worst thing about a hotel stay
 insert into public.questions (text, options)
-select 'What bothers {subject} most about a hotel stay?', '["A strange smell", "Noise", "An uncomfortable bed", "A dirty bathroom"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What bothers {subject} most about a hotel stay?');
+select 'What bothers {star} most about a hotel stay?', '["A strange smell", "Noise", "An uncomfortable bed", "A dirty bathroom"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What bothers {star} most about a hotel stay?');
 
--- Q7 — splurge first
+-- Q6 — ideal bedtime
 insert into public.questions (text, options)
-select 'What would {subject} splurge on first?', '["Flight", "Hotel", "Food", "Shopping"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What would {subject} splurge on first?');
+select 'What is {star}''s ideal bedtime?', '["10:00pm", "10:30pm", "11:00pm", "11:30pm"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {star}''s ideal bedtime?');
 
--- Q8 — bug most afraid of
+-- Q7 — favourite hobby
 insert into public.questions (text, options)
-select 'What bug is {subject} most afraid of?', '["Cockroaches", "Spiders", "Centipedes", "Mice"]'::jsonb
-where not exists (select 1 from public.questions where text = 'What bug is {subject} most afraid of?');
+select 'What is {star}''s favourite hobby?', '["Hiking", "Watching reality TV", "Hanging out with friends", "Eating food"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What is {star}''s favourite hobby?');
+
+-- Q8 — social media app used most
+insert into public.questions (text, options)
+select 'What social media app does {star} use the most?', '["Instagram", "Xiaohongshu (RedNote)", "TikTok", "YouTube Shorts"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What social media app does {star} use the most?');
+
+-- Q9 — bug most afraid of
+insert into public.questions (text, options)
+select 'What bug is {star} most afraid of?', '["Cockroaches", "Spiders", "Centipedes", "Mice"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What bug is {star} most afraid of?');
+
+-- Q10 — splurge first
+insert into public.questions (text, options)
+select 'What would {star} splurge on first?', '["Business class vs economy flight", "Luxury vs regular hotel", "Gourmet vs standard food", "Top tier vs standard health and beauty products"]'::jsonb
+where not exists (select 1 from public.questions where text = 'What would {star} splurge on first?');
 
 -- Associate the questions to the package, in defined order (order_index 0-based).
--- Uncomment the Q4 row once a version is picked; it takes order_index 3.
 insert into public.package_questions (question_package_id, question_id, order_index)
 select p.id, q.id, v.ord
 from public.question_packages p
 join (values
-  ('What is {subject}''s favourite sushi place locally?', 0),
-  ('What is {subject}''s favourite country for city life?', 1),
-  ('What is {subject}''s favourite country for nature?', 2),
---  ('What would {subject} give up first when travelling?', 3),
-  ('What is {subject}''s ideal bedtime?', 4),
-  ('What bothers {subject} most about a hotel stay?', 5),
-  ('What would {subject} splurge on first?', 6),
-  ('What bug is {subject} most afraid of?', 7)
+  ('What is {star}''s favourite vegetable?', 0),
+  ('What is {star}''s favourite local sushi place?', 1),
+  ('What is {star}''s favourite country for city life?', 2),
+  ('What is {star}''s favourite country for nature?', 3),
+  ('What bothers {star} most about a hotel stay?', 4),
+  ('What is {star}''s ideal bedtime?', 5),
+  ('What is {star}''s favourite hobby?', 6),
+  ('What social media app does {star} use the most?', 7),
+  ('What bug is {star} most afraid of?', 8),
+  ('What would {star} splurge on first?', 9)
 ) as v(text, ord) on true
 join public.questions q on q.text = v.text
-where p.name = 'How Well Do You Know Julie?'
+where p.name = 'For Julie'
 and not exists (select 1 from public.package_questions pq where pq.question_package_id = p.id and pq.question_id = q.id);

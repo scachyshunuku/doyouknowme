@@ -7,7 +7,7 @@ import { pointsLabel } from "../../lib/format";
 import ExpandableText from "../ExpandableText";
 
 export default function ResultsCard({ g }: { g: GameState }) {
-  const { game, players, questions, isHost, currentQuestion, currentAnswers, myAnswer, round, subjectPlayer, questionText, sortedResultOptions, maxResultCount, busyAction, nextQuestion } = g;
+  const { game, players, questions, isHost, currentQuestion, currentAnswers, myAnswer, round, questionText, sortedResultOptions, busyAction, nextQuestion } = g;
   if (!game) return null;
   const longQuestion = questionText.length > 150;
   return (
@@ -20,13 +20,9 @@ export default function ResultsCard({ g }: { g: GameState }) {
             const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
             const isSubjectPick = round.subjectOption === i;
             const isMyPick = myAnswer?.option_index === i;
-            const pickNotes = [
-              ...(isSubjectPick ? [`${subjectPlayer?.name ?? "the star"}'s pick`] : []),
-              ...(isMyPick ? ["your pick"] : []),
-            ];
             return (
-              <div key={i} className={`result-option${total > 0 && total === maxResultCount ? " top-pick" : ""}`}>
-                <div className="row"><span>{isSubjectPick ? "★ " : ""}<ExpandableText text={opt} />{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
+              <div key={i} className={`result-option${isSubjectPick ? " top-pick" : ""}`}>
+                <div className="row"><span>{isSubjectPick ? "★ " : ""}<ExpandableText text={opt} />{isMyPick ? " — your pick" : ""}</span><span>{total} ({pct}%)</span></div>
                 <div className="bar"><div style={{ width: `${pct}%` }} /></div>
               </div>
             );

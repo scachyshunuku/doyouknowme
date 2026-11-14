@@ -28,10 +28,10 @@ const QUESTIONS: GameQuestion[] = [
 
 // Mock answers per question: [star, guest1, guest2] option indexes.
 // Q2 is deliberate: the guests agree on Dog (2 votes) while the star
-// picked Cat, so the Results view shows the yellow top-pick highlight and
-// the gold star-pick star on DIFFERENT options. The other questions
-// keep the top choice equal to the star's pick, so both cases are
-// previewable in the playground.
+// picked Cat, so the star's pick (Cat) carries the yellow top-pick
+// highlight even though Dog has more votes. The other questions keep the
+// top choice equal to the star's pick, so both cases are previewable in
+// the playground.
 const MOCK_PICKS: number[][] = [
   [1, 1, 0],
   [1, 0, 0],
@@ -144,7 +144,6 @@ export default function Playground() {
   const sortedOptions = displayOptions
     .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
     .sort((a, b) => b.count - a.count || a.i - b.i);
-  const maxCount = Math.max(...sortedOptions.map((o) => o.count));
   const leaderboard = sortByPoints(leaderboardPlayers(players, "host", subjectId), totals);
   const guests = players.filter((p) => p.role === "guest");
   const matchesLeaderboard = sortByMatches(leaderboardPlayers(players, "host", subjectId), totals);
@@ -328,13 +327,9 @@ export default function Playground() {
                 const pct = currentAnswers.length ? Math.round((total / currentAnswers.length) * 100) : 0;
                 const isSubjectPick = round.subjectOption === i;
                 const isMyPick = guestPicked === i;
-                const pickNotes = [
-                  ...(isSubjectPick ? [`${subjectName || "Alex"}'s pick`] : []),
-                  ...(isMyPick ? ["your pick"] : []),
-                ];
                 return (
-                  <div key={i} className={`result-option${total > 0 && total === maxCount ? " top-pick" : ""}`}>
-                    <div className="row"><span>{isSubjectPick ? "★ " : ""}<ExpandableText text={opt} />{pickNotes.length ? ` — ${pickNotes.join(" · ")}` : ""}</span><span>{total} ({pct}%)</span></div>
+                  <div key={i} className={`result-option${isSubjectPick ? " top-pick" : ""}`}>
+                    <div className="row"><span>{isSubjectPick ? "★ " : ""}<ExpandableText text={opt} />{isMyPick ? " — your pick" : ""}</span><span>{total} ({pct}%)</span></div>
                     <div className="bar"><div style={{ width: `${pct}%` }} /></div>
                   </div>
                 );

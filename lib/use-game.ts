@@ -10,7 +10,7 @@ import { loadPackagesWithCounts } from "./packages";
 import { leaderboardPlayers, sortByMatches, sortByPoints, sortByPointsThenMatches } from "./leaderboard";
 import { computeRoundResult, computeTotals } from "./scoring";
 import { renderQuestionText } from "./template";
-import { shuffleArray, shuffledOptions } from "./shuffle";
+import { shuffledOptions } from "./shuffle";
 import {
   emptyCustomQuestion,
   hasDuplicateChoices,
@@ -78,7 +78,6 @@ export interface GameState {
   displayOptions: string[];
   runningLeaderboard: Player[];
   sortedResultOptions: { opt: string; i: number; count: number }[];
-  maxResultCount: number;
   leaderboard: Player[];
   matchesLeaderboard: Player[];
   load: () => Promise<void>;
@@ -220,6 +219,20 @@ export function useGame(code: string): GameState {
     load();
   }, [code, load]);
 
+  // Play again navigates to a new game code without remounting this
+  // component, so lobby-setup state initialized for the old game would
+  // otherwise carry over — guests would keep the old per-guest limit
+  // (e.g. "Question 1 of 1" after the host raised it to 2) because
+  // effectiveLimit reads the local setupLimit once setupInitRef is set.
+  // Reset it when the code changes; the init effect below re-reads it
+  // from the new game row once it loads.
+  useEffect(() => {
+    setupInitRef.current = false;
+    setSetupPackageId(undefined);
+    setSetupLimit(1);
+    setSetupRequired(false);
+  }, [code]);
+
   // Packages for the lobby setup card (the host can change the package
   // there before starting).
   const [packagesLoaded, setPackagesLoaded] = useState(false);
@@ -317,11 +330,21 @@ export function useGame(code: string): GameState {
   // least one — if nobody adds one, it comes back to the lobby instead of
   // starting (see finishContribution).
   // The lobby setup state is the source of truth while the host is editing;
-  // before it is initialized, fall back to the saved game row.
-  const effectivePackageId = setupPackageId === undefined ? (game?.question_package_id ?? null) : setupPackageId;
+  // before it is initialized, fall back to the saved game row. Guests never
+  // edit the setup, so theirs always reads the game row live — a local
+  // copy initialized once would go stale when the host changes the limit
+  // in the lobby (e.g. raising it to 2 after Play again left guests
+  // showing "Question 1 of 1").
+  const effectivePackageId = isHost
+    ? (setupPackageId === undefined ? (game?.question_package_id ?? null) : setupPackageId)
+    : (game?.question_package_id ?? null);
   const customOnly = effectivePackageId === null;
-  const questionsRequired = setupInitRef.current ? setupRequired : (game?.custom_questions_required ?? false);
-  const effectiveLimit = setupInitRef.current ? setupLimit : (game?.custom_question_limit ?? 1);
+  const questionsRequired = isHost
+    ? (setupInitRef.current ? setupRequired : (game?.custom_questions_required ?? false))
+    : (game?.custom_questions_required ?? false);
+  const effectiveLimit = isHost
+    ? (setupInitRef.current ? setupLimit : (game?.custom_question_limit ?? 1))
+    : (game?.custom_question_limit ?? 1);
   // Initialize the lobby setup from the game row once, when it first loads.
   useEffect(() => {
     if (!game || setupInitRef.current) return;
@@ -399,7 +422,6 @@ export function useGame(code: string): GameState {
         .map((opt, i) => ({ opt, i, count: round.counts[i] ?? 0 }))
         .sort((a, b) => b.count - a.count || a.i - b.i)
     : [];
-  const maxResultCount = sortedResultOptions.length > 0 ? Math.max(...sortedResultOptions.map((o) => o.count)) : 0;
 
   // Auto-advance Question -> Results when every non-host player has submitted.
   // Any connected client can trigger it (the update is idempotent), so it
@@ -472,24 +494,30 @@ export function useGame(code: string): GameState {
       return setError("Pick a question package, or allow at least 1 custom question per guest.");
     }
     // Copy the package's questions into game_questions as self-contained
-    // rows (text + options copied in, marked bank), shuffled once — the
-    // bank's defined order is only the seed list, the game plays them in
-    // this shuffled order. Only copy when the game has no questions yet
-    // (a game back in the lobby has none; this also makes a double-Start
-    // harmless).
+    // rows (text + options copied in, marked bank), in the package's
+    // defined order — the game plays the bank questions in that order, not
+    // shuffled. Only copy when the game has no questions yet (a game back
+    // in the lobby has none; this also makes a double-Start harmless).
     if (packageId) {
     const { data: pqData, error: pqErr } = await sb
       .from("package_questions")
-      .select("question_id")
-      .eq("question_package_id", packageId);
+      .select("question_id, order_index")
+      .eq("question_package_id", packageId)
+      .order("order_index");
     if (pqErr || !pqData || pqData.length === 0) { setBusyStart(false); return setError("This question package has no questions. Seed it in Supabase first."); }
     const { data: existing } = await sb.from("game_questions").select("id").eq("game_id", game.id).limit(1);
     if (!existing || existing.length === 0) {
       const qids = (pqData as { question_id: string }[]).map((r) => r.question_id);
-      const { data: bank, error: bankErr } = await sb.from("questions").select("text, options").in("id", qids);
+      const { data: bank, error: bankErr } = await sb.from("questions").select("id, text, options").in("id", qids);
       if (bankErr || !bank) { setBusyStart(false); return setError(bankErr?.message ?? "Could not load the question package."); }
-      const rows = shuffleArray(bank as { text: string; options: string[] }[])
-        .map((q, i) => ({ game_id: game.id, text: q.text, options: q.options, order_index: i, is_custom: false }));
+      // The `in()` fetch returns rows in no guaranteed order, so put them
+      // back in the package's defined order before assigning slots.
+      const byId = new Map((bank as { id: string; text: string; options: string[] }[]).map((q) => [q.id, q]));
+      const rows: { game_id: string; text: string; options: string[]; order_index: number; is_custom: boolean }[] = [];
+      for (const r of pqData as { question_id: string }[]) {
+        const q = byId.get(r.question_id);
+        if (q) rows.push({ game_id: game.id, text: q.text, options: q.options, order_index: rows.length, is_custom: false });
+      }
       const { error: gqErr } = await sb.from("game_questions").insert(rows);
       if (gqErr) { setBusyStart(false); return setError(gqErr.message); }
     }
@@ -511,7 +539,7 @@ export function useGame(code: string): GameState {
   }
 
   // Move the game from the contribution phase to the first question. The
-  // shuffle and the status flip run server-side (the finish_contribution
+  // custom shuffle and the status flip run server-side (the finish_contribution
   // RPC, one transaction), so two clients finishing at once cannot
   // interleave their shuffles. Any client may trigger it once everyone is
   // done; the RPC returns false when the game already started.
@@ -918,7 +946,6 @@ export function useGame(code: string): GameState {
     displayOptions,
     runningLeaderboard,
     sortedResultOptions,
-    maxResultCount,
     leaderboard,
     matchesLeaderboard,
     load,

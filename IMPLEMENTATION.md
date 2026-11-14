@@ -654,3 +654,23 @@ William (approved in the main voice call): match the star now earns dynamic poin
 - [x] Homepage `How it works` (`app/page.tsx`) and `README.md` / `AGENTS.md` updated to the new wording: "match the star and you score as many points as there were players who didn't match the star — the rarer your correct guess, the more it's worth. Match the majority for +1 on top. There's no cap per question."
 - [x] Verified: `npm run build` passes; 26 scoring assertions pass.
 - **Status**: PUSHED Nov 13 as commit `6e32760` and VERIFIED LIVE (the live homepage at https://doyouknowme-iota.vercel.app/ shows "as many points as there were players who didn't match the star — the rarer your correct guess, the more it's worth. Match the majority for +1 on top. There's no cap per question.").
+
+### Task 41: Bank questions play in package order, options still shuffled (Nov 14)
+
+William: "can we make it so the questions are not shuffled but the options are" / "the custom questions can be shuffled"
+
+- [x] Bank questions now play in the package's defined order. `startGame` (`lib/use-game.ts`) no longer shuffles the bank copy: it reads `package_questions` ordered by `order_index`, fetches the bank rows, and puts them back in package order before assigning `order_index` (the `in()` fetch returns rows in no guaranteed order, so the reorder step matters). `shuffleArray` is deleted from `lib/shuffle.ts` — it had no other caller. The 4 options still shuffle per game (`shuffledOptions`, seeded by game + question, same order for everyone, stable on reload).
+- [x] Custom questions still shuffle: no code change needed — `finish_contribution` (migration 0010) already assigns the custom block in `row_number() over (order by random())` order, right after the bank. Verified live below.
+- [x] Docs updated to the new rule: `RULES.md` (Terminology + Question Packages sections), `ARCHITECTURE.md` (Game + Question Package Selection), `AGENTS.md` (Question Packages rule), `supabase/seed_julie_package.sql` header comment (package order is now also the play order). `README.md` already said "in defined order… no shuffle" and needed no change.
+- [x] Verified: `npm run build` passes. Playwright `video-test/verify-task41-order.mjs` against the local client + live DB: game YLT9PK (Test Package, 5 questions) — the played order matches the package's defined order exactly; Q0's shown options (Yellow, Blue, Red, Green) differ from the bank order (Red, Blue, Green, Yellow); game L38TVA (custom-only, 6 customs from 3 guests) — `finish_contribution` returned true and the final custom order (3, 4, 6, 5, 1, 2) differs from insertion order (1–6).
+- **Status**: implemented and verified locally; push pending the user's review. No migration — the change is client + docs only.
+
+### Task 42: Star's pick is always the highlighted top one in Results (Nov 14)
+
+William: "for the results, can we highlight the star's pick as the top one always? That one should be highlighted in the yellow tone. Also for the star's pick we should just have the star beside it and get rid of --- {star}'s pick"
+
+- [x] The star's pick now always carries the gold `top-pick` highlight (gold border + tint) in Results — previously the highlight went to the most-voted option(s), so the star's pick was only highlighted when it also had the most votes. The vote-count sort stays: rows are still most-voted first, so the star's pick can sit below a more-voted option and still be the gold one.
+- [x] The "— {star}'s pick" subtext is gone. The star's pick shows just "★ " beside the option text. "— your pick" still shows for the viewer's own pick.
+- [x] `maxResultCount` is removed from `GameState` (`lib/use-game.ts`) — nothing computes the most-voted highlight any more. Mirrored in the playground (`app/playground/page.tsx`, `maxCount` removed, fixture comment updated): Q2 is still the deliberate case — the star picks Cat (1 vote) while the guests agree on Dog (2 votes) — and now Cat is the gold one.
+- [x] Verified: `npm run build` passes. Screenshot `video-test/shot-star-pick-results.png` (playground Results, Q2): Dog 2 (67%) plain, ★ Cat 1 (33%) gold, no "'s pick" text on the page.
+- **Status**: implemented and verified locally; push pending the user's review.
